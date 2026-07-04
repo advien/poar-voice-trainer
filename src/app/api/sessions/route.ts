@@ -18,6 +18,11 @@ export async function POST(request: Request) {
     prompt?: string | null;
     transcript?: string;
     feedback?: string;
+    scores?: {
+      clarity?: number;
+      accuracy?: number;
+      professionalism?: number;
+    } | null;
   };
 
   if (!body.mode || !body.transcript) {
@@ -42,6 +47,9 @@ export async function POST(request: Request) {
         prompt: body.prompt ?? null,
         transcript: body.transcript,
         feedback: body.feedback ?? null,
+        clarity_score: body.scores?.clarity ?? null,
+        accuracy_score: body.scores?.accuracy ?? null,
+        professionalism_score: body.scores?.professionalism ?? null,
       })
       .select("id")
       .single();

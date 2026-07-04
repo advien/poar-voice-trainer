@@ -22,18 +22,16 @@ export default function LandingPage() {
         >
           Start practicing
         </Link>
-        <a
-          href="#how-it-works"
-          className="rounded-lg px-6 py-3 font-medium text-slate-700 hover:text-brand"
-        >
-          How it works
-        </a>
       </div>
 
-      <div
+      <h2
         id="how-it-works"
-        className="mt-20 grid gap-6 text-left sm:grid-cols-3"
+        className="mt-20 text-center text-sm font-semibold uppercase tracking-wide text-brand"
       >
+        How it works
+      </h2>
+
+      <div className="mt-6 grid gap-6 text-left sm:grid-cols-3">
         {[
           {
             step: "1",

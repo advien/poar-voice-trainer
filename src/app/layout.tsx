@@ -21,12 +21,18 @@ export default function RootLayout({
             <Link href="/" className="font-semibold text-brand">
               POAR<span className="text-slate-400"> Voice Trainer</span>
             </Link>
-            <nav className="text-sm">
+            <nav className="flex items-center gap-5 text-sm">
               <Link
                 href="/modes"
                 className="text-slate-600 hover:text-brand transition-colors"
               >
                 Practice modes
+              </Link>
+              <Link
+                href="/progress"
+                className="text-slate-600 hover:text-brand transition-colors"
+              >
+                Progress
               </Link>
             </nav>
           </div>

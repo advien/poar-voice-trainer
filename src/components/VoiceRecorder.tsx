@@ -12,9 +12,16 @@ export interface RecorderContext {
 
 type Status = "idle" | "recording" | "transcribing" | "feedback" | "saving" | "done";
 
+interface Scores {
+  clarity: number;
+  accuracy: number;
+  professionalism: number;
+}
+
 interface SessionResult {
   transcript: string;
   feedback: string;
+  scores: Scores | null;
 }
 
 /**
@@ -101,9 +108,12 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
         body: JSON.stringify({ mode, transcript }),
       });
       if (!fRes.ok) throw new Error("Feedback generation failed");
-      const { feedback } = (await fRes.json()) as { feedback: string };
+      const { feedback, scores } = (await fRes.json()) as {
+        feedback: string;
+        scores: Scores | null;
+      };
 
-      setResult({ transcript, feedback });
+      setResult({ transcript, feedback, scores });
 
       // 3. Save
       setStatus("saving");
@@ -117,6 +127,7 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
           prompt: context.prompt,
           transcript,
           feedback,
+          scores,
         }),
       });
 
@@ -160,6 +171,21 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
 
       {result && (
         <div className="mt-6 space-y-6">
+          {result.scores && (
+            <section>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Scores
+              </h3>
+              <div className="mt-2 grid grid-cols-3 gap-3">
+                <ScoreBar label="Clarity" value={result.scores.clarity} />
+                <ScoreBar label="Accuracy" value={result.scores.accuracy} />
+                <ScoreBar
+                  label="Professionalism"
+                  value={result.scores.professionalism}
+                />
+              </div>
+            </section>
+          )}
           <section>
             <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
               Transcript
@@ -178,6 +204,23 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
           </section>
         </div>
       )}
+    </div>
+  );
+}
+
+function ScoreBar({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-slate-200 p-3">
+      <div className="flex items-baseline justify-between">
+        <span className="text-xs font-medium text-slate-500">{label}</span>
+        <span className="text-lg font-semibold text-brand">{value}</span>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+        <div
+          className="h-full rounded-full bg-brand"
+          style={{ width: `${value}%` }}
+        />
+      </div>
     </div>
   );
 }
@@ -212,6 +255,6 @@ function statusLabel(status: Status): string {
     case "done":
       return "Session saved.";
     default:
-      return "Ready when you are.";
+      return "Ready when you are!";
   }
 }

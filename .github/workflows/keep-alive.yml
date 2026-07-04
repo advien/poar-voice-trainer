@@ -1,0 +1,36 @@
+name: Supabase keep-alive
+
+# Free-tier Supabase pauses a project after 7 days of inactivity. This job
+# issues a lightweight query on a ~5-day cadence so the project stays awake.
+# Credentials come from repo secrets (Settings → Secrets and variables →
+# Actions): SUPABASE_URL and SUPABASE_ANON_KEY (the anon key is public-safe).
+
+on:
+  schedule:
+    # 06:00 UTC on days 1,6,11,16,21,26 → max gap ≤ 5 days (< 7-day freeze).
+    - cron: "0 6 */5 * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Missing SUPABASE_URL or SUPABASE_ANON_KEY repo secrets."
+            exit 1
+          fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            "$SUPABASE_URL/rest/v1/questions?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          echo "Supabase responded HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "::error::Keep-alive query failed (HTTP $code)."
+            exit 1
+          fi
+          echo "Project pinged — stays awake."

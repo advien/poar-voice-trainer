@@ -106,7 +106,6 @@ export function SessionExperience({
                     : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                 }`}
               >
-                {active ? "✓ " : ""}
                 {a.label}
               </button>
             );
@@ -114,26 +113,11 @@ export function SessionExperience({
         </div>
       </div>
 
-      <div className="rounded-lg bg-brand/5 px-5 py-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold uppercase tracking-wide text-brand">
-              Your question
-            </p>
-            <p className="mt-1 text-slate-800">{prompt}</p>
-            {question && (
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {question.areas.map((a) => (
-                  <span
-                    key={a}
-                    className="rounded bg-white px-2 py-0.5 text-xs font-medium text-brand ring-1 ring-brand/20"
-                  >
-                    {areaLabel(a)}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+      <div>
+        <div className="mb-2 flex items-center justify-between gap-4">
+          <p className="text-sm font-semibold uppercase tracking-wide text-brand">
+            Your question
+          </p>
           {pool.length > 1 && (
             <button
               onClick={shuffle}
@@ -143,6 +127,23 @@ export function SessionExperience({
             </button>
           )}
         </div>
+
+        {/* Library-card: framed question with area "tabs" hanging below. */}
+        <div className="rounded-lg border-2 border-brand-dark bg-white px-5 py-4 shadow-sm">
+          <p className="text-slate-800">{prompt}</p>
+        </div>
+        {question && question.areas.length > 0 && (
+          <div className="flex flex-wrap gap-2 pl-4">
+            {question.areas.map((a) => (
+              <span
+                key={a}
+                className="-mt-0.5 rounded-b-md border-2 border-t-0 border-brand-dark bg-brand/5 px-3 py-1 text-xs font-medium text-brand-dark"
+              >
+                {areaLabel(a)}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <VoiceRecorder

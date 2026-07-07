@@ -85,9 +85,12 @@ Open <http://localhost:3000>.
 
 - [ ] Implement `/api/transcribe` with OpenAI Whisper.
 - [ ] Implement `/api/feedback` with per-mode prompts (Claude/OpenAI).
-- [ ] Persist sessions to Supabase + add auth.
-- [ ] Session history / progress view.
-- [ ] Structured scoring (clarity, accuracy, professionalism).
+- [x] Implement transcription (Whisper) + feedback (OpenAI).
+- [x] Persist sessions to Supabase.
+- [x] Question bank (mode × area) + generator with semantic dedup.
+- [x] Structured scoring (clarity, accuracy, professionalism) + progress view.
+- [ ] Auth + per-user history (scopes `/progress` to the signed-in user).
+- [ ] Session detail view (transcript + feedback).
 - [ ] Optional audio retention in Supabase Storage.
 
 ## Environment variables
@@ -96,8 +99,20 @@ See [`.env.example`](.env.example) for the full list. Summary:
 
 | Variable | Purpose |
 | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase client |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-side privileged writes |
-| `OPENAI_API_KEY` | Whisper transcription (+ optional feedback) |
-| `ANTHROPIC_API_KEY` | Feedback (if `FEEDBACK_PROVIDER=anthropic`) |
-| `FEEDBACK_PROVIDER` | `openai` or `anthropic` |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase client (public) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-side writes / reads (secret) |
+| `OPENAI_API_KEY` | Whisper transcription + feedback (secret) |
+| `FEEDBACK_MODEL` | Optional chat model for feedback (default `gpt-4o-mini`) |
+
+## Deploy (Vercel)
+
+1. Push to GitHub (done: `advien/poar-voice-trainer`).
+2. On [vercel.com](https://vercel.com) → **New Project** → import the repo.
+   Framework is auto-detected as Next.js — no config needed.
+3. Add the environment variables above under **Settings → Environment
+   Variables** (use freshly-rotated keys, never commit them).
+4. **Deploy.** The AI routes run on the Node runtime with `maxDuration = 60`.
+
+> The `Supabase keep-alive` GitHub Action is independent of Vercel and keeps
+> the free-tier database from pausing. Set its `SUPABASE_URL` /
+> `SUPABASE_ANON_KEY` repo secrets separately.

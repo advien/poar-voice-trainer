@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getOpenAI, TRANSCRIBE_MODEL } from "@/lib/openai";
 
+// OpenAI SDK + file handling need the Node runtime. Allow headroom for
+// Whisper on longer clips (Vercel default is ~10s on Hobby).
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 /**
  * POST /api/transcribe
  * Accepts multipart form data: { audio: File, mode: string }

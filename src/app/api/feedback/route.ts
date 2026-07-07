@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getOpenAI, FEEDBACK_MODEL } from "@/lib/openai";
 import { feedbackSystemPrompt, getMode } from "@/lib/modes";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 export interface Scores {
   clarity: number;
   accuracy: number;

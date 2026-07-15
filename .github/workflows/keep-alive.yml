@@ -1,36 +1,59 @@
 name: Supabase keep-alive
 
-# Free-tier Supabase pauses a project after 7 days of inactivity. This job
-# issues a lightweight query on a ~5-day cadence so the project stays awake.
-# Credentials come from repo secrets (Settings → Secrets and variables →
-# Actions): SUPABASE_URL and SUPABASE_ANON_KEY (the anon key is public-safe).
+# Free-tier Supabase pauses a project after ~7 days of inactivity.
+#
+# Lessons from the July 2026 freeze:
+#   1. GitHub silently drops/delays scheduled runs on low-activity repos, so
+#      a 5-day cadence left >7-day gaps. We now run DAILY — losing a few runs
+#      no longer matters.
+#   2. The project froze within 4 days of a successful read-only ping, so a
+#      plain SELECT is not reliably counted as activity. We now perform a
+#      real WRITE via the keepalive_ping() RPC (see supabase/keepalive.sql),
+#      plus the original read as a fallback signal.
+#
+# Required repo secrets: SUPABASE_URL, SUPABASE_ANON_KEY (anon is public-safe).
 
 on:
   schedule:
-    # 06:00 UTC on days 1,6,11,16,21,26 → max gap ≤ 5 days (< 7-day freeze).
-    - cron: "0 6 */5 * *"
+    # Daily at 06:17 UTC. Off the top of the hour — GitHub sheds less load
+    # at odd minutes, so the run is less likely to be delayed or dropped.
+    - cron: "17 6 * * *"
   workflow_dispatch: {}
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Ping Supabase REST API
+      - name: Write-ping via keepalive_ping() RPC
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
             echo "::error::Missing SUPABASE_URL or SUPABASE_ANON_KEY repo secrets."
             exit 1
           fi
-          code=$(curl -s -o /dev/null -w "%{http_code}" \
-            "$SUPABASE_URL/rest/v1/questions?select=id&limit=1" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
-          echo "Supabase responded HTTP $code"
-          if [ "$code" != "200" ]; then
-            echo "::error::Keep-alive query failed (HTTP $code)."
+
+          # 1) Real database WRITE — unambiguous activity.
+          code=$(curl -sS --max-time 30 -o /tmp/rpc.txt -w "%{http_code}" \
+            -X POST "${SUPABASE_URL%/}/rest/v1/rpc/keepalive_ping" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          echo "RPC keepalive_ping → HTTP ${code}: $(cat /tmp/rpc.txt)"
+
+          # 2) Fallback read (kept from the original workflow).
+          rcode=$(curl -sS --max-time 30 -o /dev/null -w "%{http_code}" \
+            "${SUPABASE_URL%/}/rest/v1/questions?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
+          echo "Read questions → HTTP ${rcode}"
+
+          if [ "${code}" -lt 200 ] || [ "${code}" -ge 300 ]; then
+            echo "::error::Write-ping failed (HTTP ${code}). If the project is paused, restore it in the Supabase dashboard and run supabase/keepalive.sql."
             exit 1
           fi
-          echo "Project pinged — stays awake."
+          echo "Project pinged with a real write — stays awake."

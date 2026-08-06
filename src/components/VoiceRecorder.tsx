@@ -41,6 +41,11 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const autoStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Practice answers don't need more than this; also keeps the upload well
+  // under the server's 15 MB cap.
+  const MAX_RECORDING_MS = 5 * 60 * 1000;
 
   const startRecording = useCallback(async () => {
     setError(null);
@@ -79,6 +84,13 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
       mediaRecorderRef.current = recorder;
       recorder.start();
       setStatus("recording");
+
+      // Auto-stop at the limit; the flow then proceeds as a normal stop.
+      autoStopRef.current = setTimeout(() => {
+        if (mediaRecorderRef.current?.state === "recording") {
+          mediaRecorderRef.current.stop();
+        }
+      }, MAX_RECORDING_MS);
     } catch (err) {
       setError(micErrorMessage(err));
       console.error(err);
@@ -86,6 +98,10 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
   }, []);
 
   const stopRecording = useCallback(() => {
+    if (autoStopRef.current) {
+      clearTimeout(autoStopRef.current);
+      autoStopRef.current = null;
+    }
     mediaRecorderRef.current?.stop();
   }, []);
 
@@ -97,7 +113,12 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
       form.append("audio", audio, "recording.webm");
       form.append("mode", mode);
       const tRes = await fetch("/api/transcribe", { method: "POST", body: form });
-      if (!tRes.ok) throw new Error("Transcription failed");
+      if (!tRes.ok) {
+        const body = (await tRes.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(body?.error ?? "Transcription failed");
+      }
       const { transcript } = (await tRes.json()) as { transcript: string };
 
       // 2. Feedback
@@ -107,7 +128,12 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode, transcript }),
       });
-      if (!fRes.ok) throw new Error("Feedback generation failed");
+      if (!fRes.ok) {
+        const body = (await fRes.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(body?.error ?? "Feedback generation failed");
+      }
       const { feedback, scores } = (await fRes.json()) as {
         feedback: string;
         scores: Scores | null;
@@ -245,7 +271,7 @@ function micErrorMessage(err: unknown): string {
 function statusLabel(status: Status): string {
   switch (status) {
     case "recording":
-      return "Recording… speak now.";
+      return "Recording… speak now (auto-stops at 5 min).";
     case "transcribing":
       return "Transcribing audio…";
     case "feedback":

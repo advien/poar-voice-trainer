@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { getOpenAI, FEEDBACK_MODEL } from "@/lib/openai";
 import { feedbackSystemPrompt, getMode } from "@/lib/modes";
+import { clientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+// Cap transcript length sent to the model (chars ≈ generous 5-min answer).
+const MAX_TRANSCRIPT_CHARS = 8_000;
 
 export interface Scores {
   clarity: number;
@@ -26,6 +30,9 @@ const clampScore = (n: unknown): number => {
  * professionalism) on the transcript with OpenAI, using a per-mode prompt.
  */
 export async function POST(request: Request) {
+  const rl = rateLimit(`feedback:${clientIp(request)}`, 10, 60_000);
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
+
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json(
       { error: "OPENAI_API_KEY is not set. Add it to .env.local." },
@@ -40,6 +47,12 @@ export async function POST(request: Request) {
 
   if (!transcript) {
     return NextResponse.json({ error: "Missing transcript." }, { status: 400 });
+  }
+  if (transcript.length > MAX_TRANSCRIPT_CHARS) {
+    return NextResponse.json(
+      { error: "Transcript is too long." },
+      { status: 413 },
+    );
   }
 
   const practiceMode = mode ? getMode(mode) : undefined;

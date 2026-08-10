@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AreaId, ModeId } from "@/lib/modes";
 
 export interface RecorderContext {
@@ -10,7 +10,14 @@ export interface RecorderContext {
   prompt?: string;
 }
 
-type Status = "idle" | "recording" | "transcribing" | "feedback" | "saving" | "done";
+type Status =
+  | "idle"
+  | "recording"
+  | "review"
+  | "transcribing"
+  | "feedback"
+  | "saving"
+  | "done";
 
 interface Scores {
   clarity: number;
@@ -23,6 +30,10 @@ interface SessionResult {
   feedback: string;
   scores: Scores | null;
 }
+
+// Practice answers don't need more than this; also keeps the upload well
+// under the server's 15 MB cap.
+const MAX_RECORDING_MS = 5 * 60 * 1000;
 
 /**
  * Voice recording + session flow for a single practice mode.
@@ -38,18 +49,28 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SessionResult | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const autoStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startedAtRef = useRef<number>(0);
+  const recordedBlobRef = useRef<Blob | null>(null);
 
-  // Practice answers don't need more than this; also keeps the upload well
-  // under the server's 15 MB cap.
-  const MAX_RECORDING_MS = 5 * 60 * 1000;
+  // Revoke the playback object URL when it changes or on unmount.
+  useEffect(() => {
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioUrl]);
 
   const startRecording = useCallback(async () => {
     setError(null);
     setResult(null);
+    setAudioUrl(null); // triggers cleanup of the previous take
+    setElapsedMs(0);
 
     // getUserMedia only exists in a secure context (https or localhost) and
     // when the page isn't sandboxed by a parent iframe without mic permission.
@@ -77,13 +98,23 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
       };
       recorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
+        if (timerRef.current) clearInterval(timerRef.current);
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        void handleSubmit(blob);
+        recordedBlobRef.current = blob;
+        // Hand off to a review step so the user can listen before submitting.
+        setAudioUrl(URL.createObjectURL(blob));
+        setStatus("review");
       };
 
       mediaRecorderRef.current = recorder;
       recorder.start();
       setStatus("recording");
+
+      // Live elapsed-time counter.
+      startedAtRef.current = Date.now();
+      timerRef.current = setInterval(() => {
+        setElapsedMs(Date.now() - startedAtRef.current);
+      }, 250);
 
       // Auto-stop at the limit; the flow then proceeds as a normal stop.
       autoStopRef.current = setTimeout(() => {
@@ -103,6 +134,18 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
       autoStopRef.current = null;
     }
     mediaRecorderRef.current?.stop();
+  }, []);
+
+  const submitRecording = useCallback(() => {
+    if (recordedBlobRef.current) void handleSubmit(recordedBlobRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const discardRecording = useCallback(() => {
+    recordedBlobRef.current = null;
+    setAudioUrl(null);
+    setElapsedMs(0);
+    setStatus("idle");
   }, []);
 
   async function handleSubmit(audio: Blob) {
@@ -171,23 +214,58 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
     <div className="rounded-xl border border-slate-200 bg-white p-6">
       <div className="flex items-center gap-4">
         {status === "recording" ? (
-          <button
-            onClick={stopRecording}
-            className="rounded-lg bg-red-600 px-5 py-3 font-medium text-white hover:bg-red-700"
-          >
-            ⏹ Stop recording
-          </button>
-        ) : (
-          <button
-            onClick={startRecording}
-            disabled={busy}
-            className="rounded-lg bg-brand px-5 py-3 font-medium text-white hover:bg-brand-dark disabled:opacity-50"
-          >
-            🎙 Start recording
-          </button>
-        )}
-        <span className="text-sm text-slate-500">{statusLabel(status)}</span>
+          <>
+            <button
+              onClick={stopRecording}
+              className="rounded-lg bg-red-600 px-5 py-3 font-medium text-white hover:bg-red-700"
+            >
+              ⏹ Stop recording
+            </button>
+            <span className="flex items-center gap-2 text-sm text-slate-500">
+              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" />
+              <span className="font-mono tabular-nums text-slate-700">
+                {formatDuration(elapsedMs)}
+              </span>
+              <span>/ 5:00</span>
+            </span>
+          </>
+        ) : status !== "review" ? (
+          <>
+            <button
+              onClick={startRecording}
+              disabled={busy}
+              className="rounded-lg bg-brand px-5 py-3 font-medium text-white hover:bg-brand-dark disabled:opacity-50"
+            >
+              🎙 {status === "done" ? "Record again" : "Start recording"}
+            </button>
+            <span className="text-sm text-slate-500">{statusLabel(status)}</span>
+          </>
+        ) : null}
       </div>
+
+      {status === "review" && audioUrl && (
+        <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-medium text-slate-600">
+            Review your take ({formatDuration(elapsedMs)}) — listen back, then
+            submit or re-record.
+          </p>
+          <audio controls src={audioUrl} className="mt-3 w-full" />
+          <div className="mt-3 flex flex-wrap gap-3">
+            <button
+              onClick={submitRecording}
+              className="rounded-lg bg-brand px-5 py-2.5 font-medium text-white hover:bg-brand-dark"
+            >
+              Submit for feedback
+            </button>
+            <button
+              onClick={discardRecording}
+              className="rounded-lg border border-slate-300 px-5 py-2.5 font-medium text-slate-600 hover:bg-white"
+            >
+              ↻ Re-record
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -266,6 +344,13 @@ function micErrorMessage(err: unknown): string {
     default:
       return "Could not access the microphone. Check that a mic is connected and permission is allowed.";
   }
+}
+
+function formatDuration(ms: number): string {
+  const total = Math.floor(ms / 1000);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 function statusLabel(status: Status): string {

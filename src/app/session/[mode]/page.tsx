@@ -13,8 +13,10 @@ export function generateStaticParams() {
 
 export default async function SessionPage({
   params,
+  searchParams,
 }: {
   params: { mode: string };
+  searchParams: { q?: string };
 }) {
   const mode = getMode(params.mode);
   if (!mode) notFound();
@@ -40,6 +42,7 @@ export default async function SessionPage({
           mode={mode.id}
           questions={questions}
           fallbackPrompt={mode.prompt}
+          initialQuestionId={searchParams.q}
         />
       </div>
     </div>

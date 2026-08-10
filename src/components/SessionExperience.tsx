@@ -23,14 +23,22 @@ export function SessionExperience({
   mode,
   questions,
   fallbackPrompt,
+  initialQuestionId,
 }: {
   mode: ModeId;
   questions: Question[];
   fallbackPrompt: string;
+  initialQuestionId?: string;
 }) {
-  // Multi-select: start with all areas active.
-  const [selected, setSelected] = useState<Set<AreaId>>(
-    () => new Set(AREAS.map((a) => a.id)),
+  // When repeating a specific question (?q=), start from it.
+  const initial = initialQuestionId
+    ? questions.find((q) => q.id === initialQuestionId)
+    : undefined;
+
+  // Multi-select: start with all areas active, or just the repeated
+  // question's areas so it stays in the pool.
+  const [selected, setSelected] = useState<Set<AreaId>>(() =>
+    initial ? new Set(initial.areas) : new Set(AREAS.map((a) => a.id)),
   );
 
   // Questions whose tags overlap the selected areas.
@@ -40,8 +48,8 @@ export function SessionExperience({
     [questions, selected],
   );
 
-  const [question, setQuestion] = useState<Question | undefined>(() =>
-    randomOf(questions),
+  const [question, setQuestion] = useState<Question | undefined>(
+    () => initial ?? randomOf(questions),
   );
 
   function toggleArea(id: AreaId) {

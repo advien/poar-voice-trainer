@@ -42,7 +42,7 @@ export default function RootLayout({
 
         <footer className="border-t border-slate-200 bg-white">
           <div className="mx-auto max-w-5xl px-6 py-4 text-xs text-slate-400">
-            POAR Voice Trainer — MVP skeleton. Prosthetics · Orthotics ·
+            POAR Voice Trainer — practice explaining Prosthetics, Orthotics &
             Assistive Robotics.
           </div>
         </footer>

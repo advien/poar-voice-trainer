@@ -4,6 +4,7 @@ import {
   averageScores,
   getRecentSessions,
   overallScore,
+  weakestMode,
 } from "@/lib/sessions";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function ProgressPage() {
   const sessions = await getRecentSessions(50);
   const averages = averageScores(sessions);
+  const weakest = weakestMode(sessions);
 
   // Oldest → newest for the trend.
   const scored = sessions
@@ -47,6 +49,27 @@ export default async function ProgressPage() {
             </div>
           )}
 
+          {weakest && weakest.count > 0 && (
+            <Link
+              href={`/session/${weakest.mode}`}
+              className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 transition-colors hover:border-amber-300"
+            >
+              <div>
+                <p className="text-sm font-semibold text-amber-800">
+                  Focus area: {getMode(weakest.mode)?.title ?? weakest.mode}
+                </p>
+                <p className="text-xs text-amber-700">
+                  Your lowest average ({weakest.overall}) across{" "}
+                  {weakest.count} session{weakest.count === 1 ? "" : "s"}.
+                  Practice it →
+                </p>
+              </div>
+              <span className="shrink-0 text-2xl font-bold text-amber-700">
+                {weakest.overall}
+              </span>
+            </Link>
+          )}
+
           {scored.length > 1 && (
             <section className="mt-10">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -79,25 +102,31 @@ export default async function ProgressPage() {
               {sessions.map((s) => {
                 const v = overallScore(s);
                 return (
-                  <li key={s.id} className="flex items-center gap-4 px-4 py-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-slate-800">
-                        {s.prompt ?? "(free-form session)"}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {getMode(s.mode)?.title ?? s.mode} ·{" "}
-                        {new Date(s.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <span
-                      className={`shrink-0 rounded-full px-2.5 py-1 text-sm font-semibold ${
-                        v == null
-                          ? "bg-slate-100 text-slate-400"
-                          : "bg-brand/10 text-brand"
-                      }`}
+                  <li key={s.id}>
+                    <Link
+                      href={`/progress/${s.id}`}
+                      className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-slate-50"
                     >
-                      {v ?? "—"}
-                    </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm text-slate-800">
+                          {s.prompt ?? "(free-form session)"}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {getMode(s.mode)?.title ?? s.mode} ·{" "}
+                          {new Date(s.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-2.5 py-1 text-sm font-semibold ${
+                          v == null
+                            ? "bg-slate-100 text-slate-400"
+                            : "bg-brand/10 text-brand"
+                        }`}
+                      >
+                        {v ?? "—"}
+                      </span>
+                      <span className="shrink-0 text-slate-300">›</span>
+                    </Link>
                   </li>
                 );
               })}

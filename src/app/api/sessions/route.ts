@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, hasSupabaseAdmin } from "@/lib/supabase/admin";
+import { clientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
 
 /**
  * POST /api/sessions
@@ -11,6 +12,9 @@ import { getSupabaseAdmin, hasSupabaseAdmin } from "@/lib/supabase/admin";
  * generated id with persisted=false so the UI flow still works.
  */
 export async function POST(request: Request) {
+  const rl = rateLimit(`sessions:${clientIp(request)}`, 20, 60_000);
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
+
   const body = (await request.json()) as {
     mode?: string;
     areas?: string[] | null;

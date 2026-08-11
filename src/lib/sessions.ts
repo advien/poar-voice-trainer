@@ -12,6 +12,30 @@ export interface SessionRow {
   created_at: string;
 }
 
+export interface SessionDetail extends SessionRow {
+  question_id: string | null;
+  transcript: string;
+  feedback: string | null;
+}
+
+/** Fetch one session with its full transcript + feedback. */
+export async function getSession(id: string): Promise<SessionDetail | null> {
+  if (!hasSupabaseAdmin()) return null;
+  try {
+    const { data, error } = await getSupabaseAdmin()
+      .from("sessions")
+      .select(
+        "id, mode, areas, prompt, question_id, transcript, feedback, clarity_score, accuracy_score, professionalism_score, created_at",
+      )
+      .eq("id", id)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data as SessionDetail;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Read recent sessions (newest first) via the service-role key.
  *
@@ -49,6 +73,34 @@ export interface ScoreAverages {
   professionalism: number;
   overall: number;
   scored: number;
+}
+
+export interface ModeStat {
+  mode: ModeId;
+  overall: number;
+  count: number;
+}
+
+/** Average overall score per mode, ascending (weakest first). */
+export function modeAverages(rows: SessionRow[]): ModeStat[] {
+  const byMode = new Map<ModeId, number[]>();
+  for (const r of rows) {
+    const o = overallScore(r);
+    if (o == null) continue;
+    (byMode.get(r.mode) ?? byMode.set(r.mode, []).get(r.mode)!).push(o);
+  }
+  return [...byMode.entries()]
+    .map(([mode, scores]) => ({
+      mode,
+      count: scores.length,
+      overall: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
+    }))
+    .sort((a, b) => a.overall - b.overall);
+}
+
+/** The mode with the lowest average, when at least one mode is scored. */
+export function weakestMode(rows: SessionRow[]): ModeStat | null {
+  return modeAverages(rows)[0] ?? null;
 }
 
 /** Average each sub-score across sessions that were scored. */

@@ -161,6 +161,15 @@ The **Supabase keep-alive** GitHub Action is independent of Vercel; set its
 - [ ] Unit tests for scoring / rate-limit / dedup
 - [ ] Optional audio retention in Supabase Storage
 
+## Acknowledgements
+
+Practice questions are **AI-generated** and grounded in standard POAR
+terminology catalogued by open professional glossaries — the
+[AAOP Research Glossary](https://www.oandp.org/page/research-glossary),
+[ISPO](https://www.ispoint.org/), and
+[AOPA](https://aopanet.org/resources/glossary-of-terms/). Only factual term
+names were used as generation seeds; all prompt text is original.
+
 ## License
 
-[MIT](LICENSE) © advien
+[MIT](LICENSE) © Di Vien

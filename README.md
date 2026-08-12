@@ -1,118 +1,166 @@
-# POAR Voice Trainer
+# 🎙️ POAR Voice Trainer
 
-Voice-based AI training assistant for learning to explain **P**rosthetics,
-**O**rthotics, and **A**ssistive **R**obotics clearly and professionally — with
-patient-communication practice.
+**Practice explaining prosthetics, orthotics & assistive robotics — out loud — and get instant AI coaching.**
 
-> **Status:** MVP skeleton (milestone 1). The voice → transcribe → feedback →
-> save flow is wired end-to-end, but the AI/persistence logic is stubbed.
+[![CI](https://github.com/advien/poar-voice-trainer/actions/workflows/ci.yml/badge.svg)](https://github.com/advien/poar-voice-trainer/actions/workflows/ci.yml)
+![Next.js](https://img.shields.io/badge/Next.js-14-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
+![License: MIT](https://img.shields.io/badge/License-MIT-green)
 
-## What it does
+> **Live demo:** _deploying — link coming soon_ · Clinicians and students in the
+> prosthetics/orthotics/assistive-robotics (POAR) field must explain complex
+> devices clearly to patients, peers, and interviewers. This app turns that soft
+> skill into deliberate practice: **speak an answer, get it transcribed, scored,
+> and coached — then track your progress over time.**
 
-You pick a practice mode, record yourself answering a prompt out loud, and the
-app transcribes your speech, returns AI feedback, and saves the session so you
-can track your progress.
+<!-- Screenshots live in docs/ and are embedded once captured. -->
 
-### MVP modes
+## Why I built it
 
-| Mode | Purpose |
-| --- | --- |
-| **Explain Term** | Define a POAR concept clearly for a non-expert. |
-| **Patient Communication** | Explain a device/fitting to a patient with empathy. |
-| **Interview Practice** | Answer common interview / case questions. |
+Explaining a myoelectric prosthesis to an anxious patient, or defending a
+clinical decision in an interview, is a *spoken* skill — but there's nowhere to
+rehearse it with feedback. POAR Voice Trainer is a focused tool for that: it
+listens, transcribes, and gives structured, mode-specific coaching, so a learner
+can measurably improve clarity, accuracy, and professionalism.
 
-### Success metric
+## Features
 
-> A user can record their voice, transcribe it, receive AI feedback, and save
-> the session.
+- **Three practice modes** — *Explain Term*, *Patient Communication*, *Interview
+  Practice*, each with a tailored coaching rubric.
+- **Voice → transcript → feedback loop** — record in the browser, transcribe with
+  OpenAI Whisper, and get AI coaching in seconds.
+- **Structured scoring** — every answer is rated 0–100 on **clarity, accuracy,
+  and professionalism**, persisted for trend tracking.
+- **Progress tracking** — averages, an over-time trend, and an automatic
+  **weakest-area callout** that nudges you toward your lowest-scoring mode.
+- **Session history & detail** — revisit any past answer's transcript, feedback,
+  and scores, and **repeat the exact question** to try again.
+- **Question bank (300+)** tagged by **mode × POAR area** (prosthetics /
+  orthotics / robotics), including cross-cutting questions, generated with an
+  LLM pipeline that uses **embedding-based semantic dedup**.
+- **Review before submit** — recording timer, listen-back, and re-record.
+
+## How it works
+
+```
+ ┌── record (MediaRecorder) ──┐
+ │                            ▼
+ │              POST /api/transcribe  →  OpenAI Whisper  →  transcript
+ │                            │
+ │                            ▼
+ │              POST /api/feedback    →  OpenAI (JSON)   →  coaching + scores
+ │                            │
+ │                            ▼
+ └──────────────  POST /api/sessions  →  Supabase (Postgres + RLS)
+                              │
+                              ▼
+                      /progress  (trends, weak-spot, history)
+```
 
 ## Tech stack
 
-- **Next.js** (App Router) + **TypeScript**
-- **Tailwind CSS**
-- **Supabase** — auth + Postgres persistence
-- **OpenAI Whisper** — speech-to-text
-- **Claude or OpenAI** — feedback generation
-- No TTS, no Python in the MVP.
+| Layer | Choice |
+| --- | --- |
+| Framework | **Next.js 14** (App Router, RSC) + **TypeScript** (strict) |
+| Styling | **Tailwind CSS** |
+| Database | **Supabase** (Postgres + Row-Level Security) |
+| Speech-to-text | **OpenAI Whisper** |
+| Feedback + scoring | **OpenAI** chat (JSON mode) |
+| Hosting | **Vercel** (Node serverless functions) |
+| CI | **GitHub Actions** — lint, typecheck, build |
+
+## Notable engineering decisions
+
+- **Lazy API clients** — OpenAI/Supabase clients are constructed per-request, so
+  `next build` and CI never need real secrets.
+- **Rate limiting + input caps** — per-IP fixed-window limiter on every route,
+  plus audio-size (15 MB) and transcript-length caps, to protect API spend on a
+  public, unauthenticated demo.
+- **RLS by default** — questions are world-readable (active only); sessions are
+  locked down; server writes use the service-role key.
+- **`no-store` Supabase fetches** — session reads opt out of Next.js's fetch
+  Data Cache so `/progress` always reflects the latest rows.
+- **Semantic dedup** — the question generator embeds candidates and drops
+  near-duplicates by cosine similarity, not just exact-text matches.
+- **Free-tier keep-alive** — a daily GitHub Action performs a real DB write via
+  a locked-down RPC so the Supabase project never pauses.
+- **No auth, by design (MVP)** — this is a single-user tool; `/progress` reads
+  all sessions server-side. Auth + per-user scoping is the documented next step.
+
+## Getting started
+
+```bash
+# 1. Install
+npm install
+
+# 2. Configure environment
+cp .env.example .env.local   # then fill in Supabase + OpenAI keys
+
+# 3. Apply the database schema (Supabase SQL editor)
+#    Run supabase/schema.sql, then supabase/seed.sql, then supabase/keepalive.sql
+
+# 4. Run
+npm run dev                  # http://localhost:3000
+```
+
+Optional — grow the question bank:
+
+```bash
+npm run gen:questions -- --dry-run   # preview generation (no writes)
+npm run gen:questions                # generate + insert (needs service_role)
+```
+
+## Environment variables
+
+See [`.env.example`](.env.example). Summary:
+
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase client (public) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-side reads/writes (secret) |
+| `OPENAI_API_KEY` | Whisper + feedback (secret) |
+| `FEEDBACK_MODEL` | Optional feedback model (default `gpt-4o-mini`) |
 
 ## Project structure
 
 ```
 src/
   app/
-    layout.tsx                 # Shell: header / footer
-    page.tsx                   # Landing page
-    modes/page.tsx             # Mode selection UI
-    session/[mode]/page.tsx    # Session page skeleton
-    api/
-      transcribe/route.ts      # POST audio -> transcript   (STUB)
-      feedback/route.ts        # POST transcript -> feedback (STUB)
-      sessions/route.ts        # POST session -> save        (STUB)
-  components/
-    ModeCard.tsx
-    VoiceRecorder.tsx          # MediaRecorder + flow orchestration
+    page.tsx                    # Landing
+    modes/page.tsx              # Mode selection
+    session/[mode]/page.tsx     # Practice session (?q= repeats a question)
+    progress/page.tsx           # Trends, weak-spot, history
+    progress/[id]/page.tsx      # Session detail
+    api/{transcribe,feedback,sessions}/route.ts
+  components/{VoiceRecorder,SessionExperience,ModeCard}.tsx
   lib/
-    modes.ts                   # Shared mode definitions
-    supabase/{client,server}.ts
+    modes.ts  questions.ts  sessions.ts  ratelimit.ts  openai.ts
+    supabase/{client,server,admin}.ts
+scripts/
+  concepts.ts  generate-questions.ts    # LLM question generator + dedup
 supabase/
-  schema.sql                   # Proposed DB schema + RLS
-.env.example
+  schema.sql  seed.sql  keepalive.sql    # DDL + RLS, seed, keep-alive RPC
 ```
-
-## Getting started
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Configure environment
-cp .env.example .env.local
-#   then fill in Supabase + OpenAI/Anthropic keys
-
-# 3. Apply the database schema
-#   Paste supabase/schema.sql into the Supabase SQL editor and run it.
-
-# 4. Run the dev server
-npm run dev
-```
-
-Open <http://localhost:3000>.
-
-> The app runs without API keys: the stubbed routes return placeholder
-> transcript/feedback so you can exercise the full UI flow.
-
-## Roadmap (next milestones)
-
-- [ ] Implement `/api/transcribe` with OpenAI Whisper.
-- [ ] Implement `/api/feedback` with per-mode prompts (Claude/OpenAI).
-- [x] Implement transcription (Whisper) + feedback (OpenAI).
-- [x] Persist sessions to Supabase.
-- [x] Question bank (mode × area) + generator with semantic dedup.
-- [x] Structured scoring (clarity, accuracy, professionalism) + progress view.
-- [ ] Auth + per-user history (scopes `/progress` to the signed-in user).
-- [ ] Session detail view (transcript + feedback).
-- [ ] Optional audio retention in Supabase Storage.
-
-## Environment variables
-
-See [`.env.example`](.env.example) for the full list. Summary:
-
-| Variable | Purpose |
-| --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase client (public) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-side writes / reads (secret) |
-| `OPENAI_API_KEY` | Whisper transcription + feedback (secret) |
-| `FEEDBACK_MODEL` | Optional chat model for feedback (default `gpt-4o-mini`) |
 
 ## Deploy (Vercel)
 
-1. Push to GitHub (done: `advien/poar-voice-trainer`).
-2. On [vercel.com](https://vercel.com) → **New Project** → import the repo.
-   Framework is auto-detected as Next.js — no config needed.
-3. Add the environment variables above under **Settings → Environment
-   Variables** (use freshly-rotated keys, never commit them).
-4. **Deploy.** The AI routes run on the Node runtime with `maxDuration = 60`.
+1. Import the repo on [vercel.com](https://vercel.com) — Next.js is auto-detected.
+2. Add the environment variables above under **Settings → Environment Variables**.
+3. Deploy. AI routes run on the Node runtime with `maxDuration = 60`.
 
-> The `Supabase keep-alive` GitHub Action is independent of Vercel and keeps
-> the free-tier database from pausing. Set its `SUPABASE_URL` /
-> `SUPABASE_ANON_KEY` repo secrets separately.
+The **Supabase keep-alive** GitHub Action is independent of Vercel; set its
+`SUPABASE_URL` / `SUPABASE_ANON_KEY` repo secrets separately.
+
+## Roadmap
+
+- [x] Whisper transcription + OpenAI feedback
+- [x] Supabase persistence, question bank (mode × area) with semantic dedup
+- [x] Structured scoring + progress view, session detail, question repeat
+- [x] Rate limiting, CI, keep-alive, branch protection
+- [ ] Auth + per-user history (scope `/progress` to the signed-in user)
+- [ ] Unit tests for scoring / rate-limit / dedup
+- [ ] Optional audio retention in Supabase Storage
+
+## License
+
+[MIT](LICENSE) © advien

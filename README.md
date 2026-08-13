@@ -144,9 +144,13 @@ supabase/
 
 ## Deploy (Vercel)
 
-1. Import the repo on [vercel.com](https://vercel.com) — Next.js is auto-detected.
-2. Add the environment variables above under **Settings → Environment Variables**.
-3. Deploy. AI routes run on the Node runtime with `maxDuration = 60`.
+Full step-by-step (env vars, `poar.advien.tech` custom domain, post-deploy
+checklist, troubleshooting): **[docs/DEPLOY.md](docs/DEPLOY.md)**.
+
+Quick version: import the repo on [vercel.com](https://vercel.com) (Next.js is
+auto-detected), add the environment variables above under **Settings →
+Environment Variables**, and deploy. AI routes run on the Node runtime with
+`maxDuration = 60`.
 
 The **Supabase keep-alive** GitHub Action is independent of Vercel; set its
 `SUPABASE_URL` / `SUPABASE_ANON_KEY` repo secrets separately.

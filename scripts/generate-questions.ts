@@ -21,6 +21,7 @@ import OpenAI from "openai";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { CONCEPTS } from "./concepts";
 import { MODES, type AreaId, type ModeId } from "../src/lib/modes";
+import { normalize, maxCosine } from "../src/lib/similarity";
 
 // ── CLI args ──────────────────────────────────────────────────────
 const args = process.argv.slice(2);
@@ -47,14 +48,6 @@ const MODE_INSTRUCTIONS: Record<ModeId, string> = {
     "an interview or clinical case question a POAR examiner might ask about the concept",
 };
 
-const normalize = (s: string) =>
-  s.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
-
-function cosine(a: number[], b: number[]): number {
-  let dot = 0;
-  for (let i = 0; i < a.length; i++) dot += a[i] * b[i];
-  return dot; // OpenAI embeddings are unit-normalized → dot product = cosine.
-}
 
 async function embed(openai: OpenAI, texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
@@ -168,7 +161,7 @@ async function main() {
           return;
         }
         const v = candVecs[i];
-        const maxSim = modeVecs.reduce((m, ev) => Math.max(m, cosine(v, ev)), 0);
+        const maxSim = maxCosine(v, modeVecs);
         if (maxSim >= SIM_THRESHOLD) {
           dropped++;
           return;

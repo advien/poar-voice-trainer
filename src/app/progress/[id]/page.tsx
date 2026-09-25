@@ -11,9 +11,10 @@ const areaLabel = (id: AreaId) =>
 export default async function SessionDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const session = await getSession(params.id);
+  const { id } = await params;
+  const session = await getSession(id);
   if (!session) notFound();
 
   const mode = getMode(session.mode);

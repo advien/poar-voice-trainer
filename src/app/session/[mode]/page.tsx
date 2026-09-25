@@ -15,10 +15,11 @@ export default async function SessionPage({
   params,
   searchParams,
 }: {
-  params: { mode: string };
-  searchParams: { q?: string };
+  params: Promise<{ mode: string }>;
+  searchParams: Promise<{ q?: string }>;
 }) {
-  const mode = getMode(params.mode);
+  const [{ mode: modeParam }, { q }] = await Promise.all([params, searchParams]);
+  const mode = getMode(modeParam);
   if (!mode) notFound();
 
   const questions = await getQuestionsForMode(mode.id);
@@ -42,7 +43,7 @@ export default async function SessionPage({
           mode={mode.id}
           questions={questions}
           fallbackPrompt={mode.prompt}
-          initialQuestionId={searchParams.q}
+          initialQuestionId={q}
         />
       </div>
     </div>

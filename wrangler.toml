@@ -1,0 +1,27 @@
+# =============================================================================
+# Cloudflare Workers config for POAR Voice Trainer
+# Deployed via @opennextjs/cloudflare: `npm run cf:build` -> `npm run cf:deploy`.
+#
+# Secrets (OPENAI_API_KEY, SUPABASE_SERVICE_ROLE_KEY) are set with
+# `wrangler secret put`, never here. The NEXT_PUBLIC_* values are plaintext
+# variables kept in the Cloudflare dashboard.
+# =============================================================================
+
+name = "poar-voice-trainer"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+main = ".open-next/worker.js"
+
+# Preserve plaintext variables set in the dashboard across deploys. Without it,
+# `wrangler deploy` resets the worker's vars to match `[vars]` in this file —
+# silently wiping the NEXT_PUBLIC_* values on every push. Secrets are managed
+# separately and are unaffected.
+keep_vars = true
+
+# Asset bindings emitted by @opennextjs/cloudflare's build step.
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[observability]
+enabled = true

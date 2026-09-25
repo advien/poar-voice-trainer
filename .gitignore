@@ -29,3 +29,7 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# Cloudflare Workers build output
+.open-next/
+.wrangler/

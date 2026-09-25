@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getOpenAI, FEEDBACK_MODEL } from "@/lib/openai";
 import { feedbackSystemPrompt, getMode } from "@/lib/modes";
 import { clientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
+import { checkAccess, paymentRequired } from "@/lib/access";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -32,6 +33,11 @@ const clampScore = (n: unknown): number => {
 export async function POST(request: Request) {
   const rl = rateLimit(`feedback:${clientIp(request)}`, 10, 60_000);
   if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
+
+  // Already counted by /api/transcribe — this only refuses a caller who is
+  // out of attempts and reaching the model directly.
+  const access = await checkAccess(request);
+  if (!access.allowed) return paymentRequired();
 
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json(

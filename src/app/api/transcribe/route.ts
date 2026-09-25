@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getOpenAI, TRANSCRIBE_MODEL } from "@/lib/openai";
 import { clientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
+import { consumeAttempt, paymentRequired } from "@/lib/access";
 
 // OpenAI SDK + file handling need the Node runtime. Allow headroom for
 // Whisper on longer clips (Vercel default is ~10s on Hobby).
@@ -22,6 +23,10 @@ export async function POST(request: Request) {
   // Transcription is the most expensive call — keep the tightest limit.
   const rl = rateLimit(`transcribe:${clientIp(request)}`, 6, 60_000);
   if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
+
+  // One practice run costs one attempt, counted here on the first paid call.
+  const access = await consumeAttempt(request);
+  if (!access.allowed) return paymentRequired();
 
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json(

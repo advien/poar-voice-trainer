@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AreaId, ModeId } from "@/lib/modes";
+import AccessDialog from "@/components/AccessDialog";
 
 export interface RecorderContext {
   mode: ModeId;
@@ -48,6 +49,7 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
   const { mode } = context;
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [gate, setGate] = useState<string | null>(null);
   const [result, setResult] = useState<SessionResult | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -159,7 +161,13 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
       if (!tRes.ok) {
         const body = (await tRes.json().catch(() => null)) as {
           error?: string;
+          gate?: boolean;
         } | null;
+        if (tRes.status === 402) {
+          setGate(body?.error ?? "This is a paid service.");
+          setStatus("review");
+          return;
+        }
         throw new Error(body?.error ?? "Transcription failed");
       }
       const { transcript } = (await tRes.json()) as { transcript: string };
@@ -174,7 +182,13 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
       if (!fRes.ok) {
         const body = (await fRes.json().catch(() => null)) as {
           error?: string;
+          gate?: boolean;
         } | null;
+        if (fRes.status === 402) {
+          setGate(body?.error ?? "This is a paid service.");
+          setStatus("review");
+          return;
+        }
         throw new Error(body?.error ?? "Feedback generation failed");
       }
       const { feedback, scores } = (await fRes.json()) as {
@@ -212,6 +226,12 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <AccessDialog
+        open={gate !== null}
+        message={gate ?? ""}
+        onClose={() => setGate(null)}
+      />
+
       <div className="flex items-center gap-4">
         {status === "recording" ? (
           <>

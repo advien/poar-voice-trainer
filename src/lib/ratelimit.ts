@@ -47,9 +47,10 @@ export function rateLimit(
   return { ok: false, retryAfterSec: Math.ceil((bucket.resetAt - now) / 1000) };
 }
 
-/** Best-effort client IP (Vercel/proxies set x-forwarded-for). */
+/** Best-effort client IP. Cloudflare sets cf-connecting-ip; others forward. */
 export function clientIp(request: Request): string {
   return (
+    request.headers.get("cf-connecting-ip") ??
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     request.headers.get("x-real-ip") ??
     "unknown"

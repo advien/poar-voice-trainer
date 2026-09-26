@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -8,11 +9,17 @@ export const metadata: Metadata = {
     "Voice-based AI training for explaining prosthetics, orthotics, and assistive robotics clearly and professionally.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Decides between "Sign in" and "Account" in the header. A signed-out
+  // visitor costs one anonymous call to Supabase and sees the trial as before.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col">
@@ -34,6 +41,21 @@ export default function RootLayout({
               >
                 Progress
               </Link>
+              {user ? (
+                <Link
+                  href="/account"
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50"
+                >
+                  Account
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50"
+                >
+                  Sign in
+                </Link>
+              )}
             </nav>
           </div>
         </header>
@@ -41,9 +63,14 @@ export default function RootLayout({
         <main className="flex-1">{children}</main>
 
         <footer className="border-t border-slate-200 bg-white">
-          <div className="mx-auto max-w-5xl px-6 py-4 text-xs text-slate-400">
-            POAR Voice Trainer — practice explaining Prosthetics, Orthotics &
-            Assistive Robotics.
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-6 py-4 text-xs text-slate-400">
+            <span>
+              POAR Voice Trainer — practice explaining Prosthetics, Orthotics
+              &amp; Assistive Robotics.
+            </span>
+            <Link href="/privacy" className="hover:text-brand">
+              Privacy
+            </Link>
           </div>
         </footer>
       </body>

@@ -9,24 +9,28 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "gen:questions": "tsx scripts/generate-questions.ts"
+    "gen:questions": "tsx scripts/generate-questions.ts",
+    "cf:build": "node scripts/cf-build.mjs",
+    "cf:preview": "npx @opennextjs/cloudflare@latest preview",
+    "cf:deploy": "npx @opennextjs/cloudflare@latest deploy"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
-    "next": "^14.2.35",
+    "next": "^15.5.26",
     "openai": "^6.44.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.6",
     "@types/node": "^20.16.11",
-    "@types/react": "^18.3.11",
-    "@types/react-dom": "^18.3.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.20",
     "dotenv": "^17.4.2",
     "eslint": "^8.57.1",
-    "eslint-config-next": "^14.2.35",
+    "eslint-config-next": "^15.5.26",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
     "tsx": "^4.22.4",

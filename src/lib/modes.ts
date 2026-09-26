@@ -27,6 +27,12 @@ export interface PracticeMode {
   prompt: string;
   /** Accent emoji used in the card UI. */
   icon: string;
+  /**
+   * Why the mode is worth practising, for the reader who suspects it is soft
+   * filler. Shown behind a disclosure on the session page. Omitted where the
+   * point of the drill speaks for itself.
+   */
+  why?: string;
 }
 
 export const MODES: PracticeMode[] = [
@@ -49,6 +55,8 @@ export const MODES: PracticeMode[] = [
     prompt:
       "Imagine a patient asking how their new orthosis will help. Respond as you would in clinic.",
     icon: "🤝",
+    why:
+      "You are learning to make a worried person understand their own device — to pace the explanation, check that it landed, and answer fear without retreating into jargon. It is a separate skill from explaining to a colleague, it decides whether a patient actually wears what you fitted, and it is examined: communication sits in POAR competency frameworks and OSCE-style assessments.",
   },
   {
     id: "interview",
@@ -59,6 +67,8 @@ export const MODES: PracticeMode[] = [
     prompt:
       "Answer: “Walk me through how you would assess a patient for a lower-limb prosthesis.”",
     icon: "🎯",
+    why:
+      "Interview answers fail for reasons unrelated to knowledge: burying the point, running long, or never saying what you actually did. Rehearsing aloud against a rubric turns a vague sense of 'I know this' into an answer with a shape — claim, method, result, limit — which is also how a case discussion with a consultant goes.",
   },
 ];
 

@@ -20,7 +20,7 @@ export async function getQuestionsForMode(mode: ModeId): Promise<Question[]> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return [];
 
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from("questions")
       .select("id, mode, areas, prompt")

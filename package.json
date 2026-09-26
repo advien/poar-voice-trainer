@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "gen:questions": "tsx scripts/generate-questions.ts",
-    "cf:build": "npx @opennextjs/cloudflare@latest build",
+    "cf:build": "node scripts/cf-build.mjs",
     "cf:preview": "npx @opennextjs/cloudflare@latest preview",
     "cf:deploy": "npx @opennextjs/cloudflare@latest deploy"
   },

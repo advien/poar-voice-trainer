@@ -38,6 +38,7 @@ export default async function SessionPage({
         </div>
       </div>
 
+      {mode.why && (
       <details className="group mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
         <summary className="cursor-pointer list-none text-sm font-medium text-slate-700 marker:content-none">
           <span className="text-brand group-open:hidden">▸ </span>
@@ -46,6 +47,7 @@ export default async function SessionPage({
         </summary>
         <p className="mt-3 text-sm leading-relaxed text-slate-600">{mode.why}</p>
       </details>
+      )}
 
       <div className="mt-8">
         <SessionExperience

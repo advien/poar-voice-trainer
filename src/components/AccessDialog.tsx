@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import AccessCodeForm from "@/components/AccessCodeForm";
 
 /**
  * Shown when the server refuses a run with 402 — the free attempt is spent.
@@ -56,6 +57,8 @@ export default function AccessDialog({
             adsnufkin@gmail.com
           </a>
         </p>
+
+        <AccessCodeForm />
 
         <div className="mt-6 flex flex-wrap gap-3">
           <button

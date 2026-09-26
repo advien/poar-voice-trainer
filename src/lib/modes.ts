@@ -29,9 +29,10 @@ export interface PracticeMode {
   icon: string;
   /**
    * Why the mode is worth practising, for the reader who suspects it is soft
-   * filler. Shown behind a disclosure on the session page.
+   * filler. Shown behind a disclosure on the session page. Omitted where the
+   * point of the drill speaks for itself.
    */
-  why: string;
+  why?: string;
 }
 
 export const MODES: PracticeMode[] = [
@@ -44,8 +45,6 @@ export const MODES: PracticeMode[] = [
     prompt:
       "Pick a term (e.g. “myoelectric prosthesis”) and explain it out loud as if teaching a new colleague.",
     icon: "📖",
-    why:
-      "A definition you can recite is not the same as one a listener can use. Saying it out loud exposes the gap: the jargon you lean on, the step you skip because it is obvious to you, the sentence that runs out of air. Clinicians explain the same handful of terms hundreds of times, to patients, to funders and to students — the version that lands is built by repetition, not by reading.",
   },
   {
     id: "patient-communication",
@@ -57,7 +56,7 @@ export const MODES: PracticeMode[] = [
       "Imagine a patient asking how their new orthosis will help. Respond as you would in clinic.",
     icon: "🤝",
     why:
-      "Adherence depends on it. A patient who does not understand what a device does, or who feels talked past while being fitted with it, wears it less and reports less — and the clinical result follows. Explaining a fitting to an anxious person is a distinct skill from explaining it to a colleague: the content is the same, the pacing, the checks for understanding and the handling of fear are not. It is trainable, and it is assessed in practice: communication is part of prosthetics and orthotics competency frameworks and of the OSCE-style exams used to certify clinicians. This mode is deliberate practice for the part of the job that happens in front of a worried human being.",
+      "You are learning to make a worried person understand their own device — to pace the explanation, check that it landed, and answer fear without retreating into jargon. It is a separate skill from explaining to a colleague, it decides whether a patient actually wears what you fitted, and it is examined: communication sits in POAR competency frameworks and OSCE-style assessments.",
   },
   {
     id: "interview",

@@ -38,9 +38,7 @@ export default function ProgressPage() {
           href={`mailto:${CONTACT_EMAIL}?subject=POAR%20Voice%20Trainer%20account`}
         >
           {CONTACT_EMAIL}
-        </a>{" "}
-        — the address is here in plain text, so it works whether or not your
-        browser opens a mail app.
+        </a>
       </p>
 
       <p className="mt-8 text-sm text-slate-500">

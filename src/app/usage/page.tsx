@@ -3,6 +3,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { hasAccessCode } from "@/lib/access";
 import { summarise, type UsageSummary } from "@/lib/usage";
+import AccessCodeForm from "@/components/AccessCodeForm";
 
 export const metadata: Metadata = {
   title: "Usage — POAR Voice Trainer",
@@ -35,6 +36,8 @@ export default async function UsagePage() {
           This page is private — it shows what the service costs to run. Redeem
           an access code to see it.
         </p>
+
+        <AccessCodeForm />
         <p className="mt-8 text-sm text-slate-500">
           <Link href="/" className="text-brand hover:underline">
             ← Back to the trainer

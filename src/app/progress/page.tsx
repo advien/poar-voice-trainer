@@ -31,13 +31,16 @@ export default function ProgressPage() {
         else.
       </p>
 
-      <p className="mt-6">
+      <p className="mt-6 leading-relaxed text-slate-700">
+        Want one? Write to{" "}
         <a
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+          className="font-medium text-brand underline"
           href={`mailto:${CONTACT_EMAIL}?subject=POAR%20Voice%20Trainer%20account`}
         >
-          Ask for an account
-        </a>
+          {CONTACT_EMAIL}
+        </a>{" "}
+        — the address is here in plain text, so it works whether or not your
+        browser opens a mail app.
       </p>
 
       <p className="mt-8 text-sm text-slate-500">

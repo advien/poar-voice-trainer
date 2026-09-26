@@ -47,13 +47,17 @@ export default function AccessDialog({
 
         <p className="mt-3 text-sm leading-relaxed text-slate-600">{message}</p>
 
-        <div className="mt-6 flex flex-wrap gap-3">
+        <p className="mt-4 text-sm text-slate-600">
+          Write to{" "}
           <a
             href="mailto:adsnufkin@gmail.com?subject=POAR%20Voice%20Trainer%20access"
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            className="font-medium text-brand underline"
           >
-            Request access
+            adsnufkin@gmail.com
           </a>
+        </p>
+
+        <div className="mt-6 flex flex-wrap gap-3">
           <button
             ref={closeRef}
             type="button"

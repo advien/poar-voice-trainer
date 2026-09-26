@@ -20,5 +20,9 @@ export const CONSENT_SUMMARY =
 export const RESULT_DISCLAIMER =
   "Nothing here was saved — no audio, no transcript, no scores. Closing this page ends the session for good.";
 
+/** The standing reminder shown once consent is given. */
+export const CONSENT_STANDING =
+  "Recording goes to OpenAI · nothing is stored";
+
 /** localStorage key holding the accepted policy version. */
 export const CONSENT_STORAGE_KEY = "vt_consent_version";

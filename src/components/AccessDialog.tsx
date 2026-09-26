@@ -12,10 +12,13 @@ export default function AccessDialog({
   open,
   message,
   onClose,
+  onRedeemed,
 }: {
   open: boolean;
   message: string;
   onClose: () => void;
+  /** Called when a code is accepted, so the caller can resume what it was doing. */
+  onRedeemed?: () => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -58,7 +61,7 @@ export default function AccessDialog({
           </a>
         </p>
 
-        <AccessCodeForm />
+        <AccessCodeForm onSuccess={onRedeemed} />
 
         <div className="mt-6 flex flex-wrap gap-3">
           <button

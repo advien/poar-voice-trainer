@@ -216,6 +216,12 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
         open={gate !== null}
         message={gate ?? ""}
         onClose={() => setGate(null)}
+        onRedeemed={() => {
+          // The take is still in hand — close the dialog and finish the run
+          // the person already made, rather than making them record again.
+          setGate(null);
+          submitRecording();
+        }}
       />
 
       <ConsentGate onAccepted={setConsented} />

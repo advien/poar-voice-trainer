@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AreaId, ModeId } from "@/lib/modes";
 import AccessDialog from "@/components/AccessDialog";
+import ConsentGate from "@/components/ConsentGate";
+import { RESULT_DISCLAIMER } from "@/lib/privacy";
 
 export interface RecorderContext {
   mode: ModeId;
@@ -17,7 +19,6 @@ type Status =
   | "review"
   | "transcribing"
   | "feedback"
-  | "saving"
   | "done";
 
 interface Scores {
@@ -50,6 +51,7 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [gate, setGate] = useState<string | null>(null);
+  const [consented, setConsented] = useState(false);
   const [result, setResult] = useState<SessionResult | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -196,24 +198,8 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
         scores: Scores | null;
       };
 
+      // Results live in this component and nowhere else — no save step.
       setResult({ transcript, feedback, scores });
-
-      // 3. Save
-      setStatus("saving");
-      await fetch("/api/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode,
-          areas: context.areas,
-          questionId: context.questionId,
-          prompt: context.prompt,
-          transcript,
-          feedback,
-          scores,
-        }),
-      });
-
       setStatus("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -222,7 +208,7 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
   }
 
   const busy =
-    status === "transcribing" || status === "feedback" || status === "saving";
+    status === "transcribing" || status === "feedback";
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6">
@@ -231,6 +217,8 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
         message={gate ?? ""}
         onClose={() => setGate(null)}
       />
+
+      <ConsentGate onAccepted={setConsented} />
 
       <div className="flex items-center gap-4">
         {status === "recording" ? (
@@ -253,7 +241,7 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
           <>
             <button
               onClick={startRecording}
-              disabled={busy}
+              disabled={busy || !consented}
               className="rounded-lg bg-brand px-5 py-3 font-medium text-white hover:bg-brand-dark disabled:opacity-50"
             >
               🎙 {status === "done" ? "Record again" : "Start recording"}
@@ -326,6 +314,10 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
               {result.feedback}
             </p>
           </section>
+
+          <p className="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-500">
+            {RESULT_DISCLAIMER}
+          </p>
         </div>
       )}
     </div>
@@ -381,8 +373,6 @@ function statusLabel(status: Status): string {
       return "Transcribing audio…";
     case "feedback":
       return "Generating feedback…";
-    case "saving":
-      return "Saving session…";
     case "done":
       return "Session saved.";
     default:

@@ -41,9 +41,14 @@ export default function RootLayout({
         <main className="flex-1">{children}</main>
 
         <footer className="border-t border-slate-200 bg-white">
-          <div className="mx-auto max-w-5xl px-6 py-4 text-xs text-slate-400">
-            POAR Voice Trainer — practice explaining Prosthetics, Orthotics &
-            Assistive Robotics.
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-6 py-4 text-xs text-slate-400">
+            <span>
+              POAR Voice Trainer — practice explaining Prosthetics, Orthotics
+              &amp; Assistive Robotics.
+            </span>
+            <Link href="/privacy" className="hover:text-brand">
+              Privacy
+            </Link>
           </div>
         </footer>
       </body>

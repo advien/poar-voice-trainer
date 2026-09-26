@@ -4,10 +4,19 @@ import { useState } from "react";
 
 /**
  * Redeems an access code, so nobody has to open a browser console to do it.
- * On success the cookie is set by the server and the page is reloaded, which
- * is enough for the gate and for /usage to notice.
+ * The server sets the cookie; what happens next is the caller's business —
+ * reload a locked page, or carry on with the recording in hand.
  */
-export default function AccessCodeForm() {
+export default function AccessCodeForm({
+  onSuccess,
+}: {
+  /**
+   * Called once the code is accepted. Without it the page reloads, which is
+   * right for a locked page and wrong mid-recording: a reload would discard
+   * the take the person just made.
+   */
+  onSuccess?: () => void;
+} = {}) {
   const [code, setCode] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -35,7 +44,8 @@ export default function AccessCodeForm() {
         return;
       }
 
-      window.location.reload();
+      if (onSuccess) onSuccess();
+      else window.location.reload();
     } catch {
       setState("error");
       setMessage("Could not reach the server. Try again.");

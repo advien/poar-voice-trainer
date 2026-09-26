@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
+  CONSENT_STANDING,
   CONSENT_STORAGE_KEY,
   CONSENT_SUMMARY,
   POLICY_VERSION,
@@ -66,7 +67,27 @@ export default function ConsentGate({
 
   // Avoid a flash of the unticked box for someone who already agreed.
   if (!ready) return null;
-  if (accepted) return null;
+
+  // Once agreed, the block shrinks to a standing reminder — what happens to
+  // the recording stays on screen, and the agreement can be withdrawn.
+  if (accepted) {
+    return (
+      <p className="mb-4 text-xs text-slate-500">
+        {CONSENT_STANDING} &middot;{" "}
+        <Link href="/privacy" className="underline hover:text-brand">
+          privacy notice
+        </Link>{" "}
+        &middot;{" "}
+        <button
+          type="button"
+          onClick={() => toggle(false)}
+          className="underline hover:text-brand"
+        >
+          withdraw
+        </button>
+      </p>
+    );
+  }
 
   return (
     <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4">

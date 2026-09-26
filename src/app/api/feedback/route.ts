@@ -3,6 +3,7 @@ import { getOpenAI, FEEDBACK_MODEL } from "@/lib/openai";
 import { feedbackSystemPrompt, getMode } from "@/lib/modes";
 import { clientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
 import { checkAccess, paymentRequired } from "@/lib/access";
+import { recordUsage } from "@/lib/usage";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -87,6 +88,13 @@ export async function POST(request: Request) {
             `Their transcribed answer:\n"""\n${transcript}\n"""`,
         },
       ],
+    });
+
+    await recordUsage({
+      endpoint: "feedback",
+      model: FEEDBACK_MODEL,
+      promptTokens: completion.usage?.prompt_tokens ?? null,
+      completionTokens: completion.usage?.completion_tokens ?? null,
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";

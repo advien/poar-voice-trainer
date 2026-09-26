@@ -39,13 +39,22 @@ results line and the full page cannot disagree with each other.
 - [ ] `grep -rn "transcript" src/app/api` shows it only as a request body and a
       response, never as something written.
 
-### "Only two counters are stored"
+### "Only these counters are stored"
 
 - [ ] `free_usage` — visitor hash, attempts, timestamps. `supabase/free_usage.sql`
 - [ ] `consent_log` — visitor hash, policy version, date. `supabase/consent_log.sql`
-- [ ] Neither table has a column holding content or a raw address.
-- [ ] Both have RLS enabled with no policies, so only the service-role key
+- [ ] `usage_log` — endpoint, model, counts, date. `supabase/usage_log.sql`
+- [ ] No table has a column holding content or a raw address.
+- [ ] All have RLS enabled with no policies, so only the service-role key
       reaches them.
+
+### "Usage rows describe the service, not the visitor"
+
+- [ ] `usage_log` has no visitor column: `supabase/usage_log.sql` lists
+      endpoint, model, counts and a timestamp — nothing else.
+- [ ] `recordUsage()` in `src/lib/usage.ts` is never passed a hash, a
+      transcript or a request object.
+- [ ] `/usage` is behind the access code and carries `robots: noindex`.
 
 ### "The IP address itself is never written down"
 

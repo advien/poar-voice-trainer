@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getOpenAI, TRANSCRIBE_MODEL } from "@/lib/openai";
 import { clientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
 import { consumeAttempt, paymentRequired } from "@/lib/access";
+import { recordUsage } from "@/lib/usage";
 
 // OpenAI SDK + file handling need the Node runtime. Allow headroom for
 // Whisper on longer clips (Vercel default is ~10s on Hobby).
@@ -52,9 +53,17 @@ export async function POST(request: Request) {
   }
 
   try {
+    // verbose_json carries the clip duration, which is what Whisper bills on.
     const transcription = await getOpenAI().audio.transcriptions.create({
       file: audio,
       model: TRANSCRIBE_MODEL,
+      response_format: "verbose_json",
+    });
+
+    await recordUsage({
+      endpoint: "transcribe",
+      model: TRANSCRIBE_MODEL,
+      audioSeconds: transcription.duration ?? null,
     });
 
     return NextResponse.json({ transcript: transcription.text });

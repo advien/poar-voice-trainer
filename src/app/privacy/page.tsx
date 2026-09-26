@@ -69,6 +69,13 @@ export default function PrivacyPage() {
               hash, the version above, and the date. No content, no identifiers
               you would recognise.
             </li>
+            <li>
+              <strong>What the service itself consumed.</strong> Each paid call
+              records which model ran, how many seconds of audio or tokens it
+              handled, and when — so the running cost can be watched. These rows
+              describe the service, not you: they carry no content and nothing
+              that links them to a visitor.
+            </li>
           </ul>
           <p className="mt-3 leading-relaxed">
             That is the whole list. No transcripts, no audio, no scores, no

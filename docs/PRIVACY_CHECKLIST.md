@@ -64,10 +64,19 @@ results line and the full page cannot disagree with each other.
       hashing and for the in-memory rate limiter.
 - [ ] `ACCESS_SALT` is a worker secret, not a literal in the repo.
 
-### "One cookie, and only with an access code"
+### "Only functional cookies, and only when you act"
 
-- [ ] The only `cookies.set` is in `src/app/api/access/route.ts`.
+- [ ] `grep -rn "cookies.set" src` shows two sources and no more: the access
+      code (`src/app/api/access/route.ts`) and the Supabase session refresh
+      (`src/middleware.ts`).
+- [ ] An anonymous visit sets none of them.
 - [ ] Consent is remembered in `localStorage`, not a cookie.
+
+### "An account holds an email and nothing else yet"
+
+- [ ] No table stores anything against `user_id`: `grep -rn "user_id" src`
+      returns nothing.
+- [ ] `/account` reads only the signed-in user and the usage summary.
 
 ### "No analytics or tracking"
 
@@ -86,13 +95,16 @@ results line and the full page cannot disagree with each other.
 
 ---
 
-## Before accounts ship
+## Before saved history ships
 
-Accounts change every answer above. Before the first account exists:
+Sign-in exists; storing practice against it does not, and that is the line the
+notice currently draws. Before the first session is saved:
 
 - [ ] The notice says what an account stores (email, saved sessions) and for
-      how long.
+      how long — updated *before* the first write, not after.
 - [ ] Sessions are written with `user_id` set and read through the anon key
       under RLS — never the service-role key, which bypasses it.
 - [ ] A person can delete their account and their sessions themselves, or the
       notice says how to ask.
+- [ ] The site's project page stops saying the trial keeps nothing, if that
+      ceases to be true.

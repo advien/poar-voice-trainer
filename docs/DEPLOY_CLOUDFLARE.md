@@ -83,7 +83,20 @@ workers_dev = false
 
 ---
 
-## 4. Access gate
+## 4. Supabase auth
+
+Sign-in is by one-time link, and accounts are invitation-only:
+
+- Authentication → Providers → Email: sign-ups **off**. The app also passes
+  `shouldCreateUser: false`, so a stray link cannot create an account.
+- Authentication → Users → add your own address by hand.
+- Authentication → URL Configuration → Redirect URLs must include
+  `https://voice-trainer.advien.tech/auth/callback` (and the local address
+  while testing). Without it Supabase refuses to send the link.
+
+---
+
+## 5. Access gate
 
 One free run per visitor, then a 402 that the UI turns into a dialog. See
 `src/lib/access.ts`.
@@ -96,14 +109,15 @@ curl -X POST https://voice-trainer.advien.tech/api/access \
   -d '{"code":"<ACCESS_CODE>"}' -c cookies.txt
 ```
 
-In a browser, the same call from the console sets the cookie for 30 days.
+In a browser there is a form: the locked `/usage` page and the gate dialog
+both take the code and set the cookie for 30 days.
 
 To reset everyone's allowance, rotate `ACCESS_SALT` — every visitor hashes to
 a new key and starts fresh.
 
 ---
 
-## 5. Afterwards
+## 6. Afterwards
 
 - [ ] `demo:` link added to the project page on advien.tech
 - [ ] the MedTech board badge flipped from `demo pending` to `live`

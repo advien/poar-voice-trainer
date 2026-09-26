@@ -78,19 +78,26 @@ export default function PrivacyPage() {
             </li>
           </ul>
           <p className="mt-3 leading-relaxed">
-            That is the whole list. No transcripts, no audio, no scores, no
-            name, no email, no analytics, no advertising or tracking cookies.
+            That is the whole list for the open trial. No transcripts, no
+            audio, no scores, no name, no email, no analytics, no advertising
+            or tracking cookies.
           </p>
         </section>
 
         <section>
           <h2 className="text-lg font-semibold text-slate-900">Cookies</h2>
           <p className="mt-2 leading-relaxed">
-            One cookie, and only if you were given an access code: it records
-            that the code was redeemed so you are not asked again for 30 days.
-            Your acceptance of this notice is remembered in your browser&apos;s
-            local storage so you are not asked twice; clearing your browser data
-            clears it.
+            Browsing and practising anonymously sets no cookies at all. Two
+            things can set one: redeeming an access code, which records that it
+            was redeemed so you are not asked again for 30 days; and signing in,
+            which sets the session cookies Supabase uses to keep you signed in.
+            Both are strictly functional — nothing here tracks you between
+            sites.
+          </p>
+          <p className="mt-3 leading-relaxed">
+            Your acceptance of this notice is remembered in your
+            browser&apos;s local storage so you are not asked twice; clearing
+            your browser data clears it.
           </p>
         </section>
 
@@ -133,13 +140,18 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-slate-900">
-            Accounts, later
-          </h2>
+          <h2 className="text-lg font-semibold text-slate-900">Accounts</h2>
           <p className="mt-2 leading-relaxed">
-            Saved progress will need an account, and an account will need an
-            email address. That is not built yet. When it is, this notice will
-            say what an account stores before anyone can create one.
+            You can sign in, by a one-time link sent to your email. Accounts are
+            invitation-only: sign-up is closed, so a link only reaches an
+            address that already has one.
+          </p>
+          <p className="mt-3 leading-relaxed">
+            An account holds your email address and the sign-in records
+            Supabase keeps for it. Nothing else yet — practice history is not
+            saved for accounts either, and when that changes this notice will
+            say what is kept, and for how long, before the first session is
+            stored.
           </p>
         </section>
       </div>

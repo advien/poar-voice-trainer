@@ -100,8 +100,9 @@ results line and the full page cannot disagree with each other.
 Sign-in exists; storing practice against it does not, and that is the line the
 notice currently draws. Before the first session is saved:
 
-- [ ] The notice says what an account stores (email, saved sessions) and for
-      how long — updated *before* the first write, not after.
+- [x] The notice says what an account stores (email, saved sessions) and for
+      how long — updated *before* the first write, not after. Done in policy
+      version 2026-09-28, which also re-asks everyone for consent.
 - [ ] Sessions are written with `user_id` set and read through the anon key
       under RLS — never the service-role key, which bypasses it.
 - [ ] A person can delete their account and their sessions themselves, or the

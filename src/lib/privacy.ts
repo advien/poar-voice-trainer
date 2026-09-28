@@ -8,17 +8,17 @@
  * old consent is never mistaken for agreement to new terms.
  */
 
-export const POLICY_VERSION = "2026-09-26";
+export const POLICY_VERSION = "2026-09-28";
 
 export const CONTACT_EMAIL = "adsnufkin@gmail.com";
 
 /** Shown next to the consent checkbox, before the first recording. */
 export const CONSENT_SUMMARY =
-  "Your recording is sent to OpenAI to be transcribed and scored. Nothing is stored: no audio, no transcript, no scores. Results live in this browser tab and are gone when you close it.";
+  "Your recording is sent to OpenAI to be transcribed and coached. Signed out, nothing is stored at all — no audio, no transcript, no result; it lives in this tab and ends with it. Signed in, your practice is saved and the transcript is deleted after two days.";
 
 /** Shown once results are on screen. */
 export const RESULT_DISCLAIMER =
-  "Nothing here was saved — no audio, no transcript, no scores. Closing this page ends the session for good.";
+  "Nothing here was saved — no audio, no transcript, no result. Closing this page ends the session for good.";
 
 /** The standing reminder shown once consent is given. */
 export const CONSENT_STANDING =

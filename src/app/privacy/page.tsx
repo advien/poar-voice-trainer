@@ -144,14 +144,55 @@ export default function PrivacyPage() {
           <p className="mt-2 leading-relaxed">
             You can sign in, by a one-time link sent to your email. Accounts are
             invitation-only: sign-up is closed, so a link only reaches an
-            address that already has one.
+            address that already has one. An account holds your email address
+            and the sign-in records Supabase keeps for it.
           </p>
+
           <p className="mt-3 leading-relaxed">
-            An account holds your email address and the sign-in records
-            Supabase keeps for it. Nothing else yet — practice history is not
-            saved for accounts either, and when that changes this notice will
-            say what is kept, and for how long, before the first session is
-            stored.
+            <strong>Signed in, your practice is saved — some of it briefly.</strong>{" "}
+            Everything below applies only while you are signed in. The open
+            trial, described above, still keeps nothing at all.
+          </p>
+
+          <ul className="mt-3 list-disc space-y-2 pl-5 leading-relaxed">
+            <li>
+              <strong>Kept until you delete it:</strong> which question you
+              answered, when, the level each axis came back at, the sentences
+              explaining those levels, and the instruction for the next attempt.
+              This is what a history is made of — it is also, deliberately, not
+              the words you said.
+            </li>
+            <li>
+              <strong>Kept for two days, then deleted automatically:</strong>{" "}
+              the transcript of the answer. Long enough to re-read yesterday&apos;s
+              attempt, short enough that this is not a library of recorded
+              speech. A scheduled job removes it; nothing needs to be asked for.
+            </li>
+            <li>
+              <strong>Never kept:</strong> the audio. It is transcribed and
+              discarded, signed in or not.
+            </li>
+          </ul>
+
+          <p className="mt-3 leading-relaxed">
+            The consequence is worth stating plainly rather than leaving you to
+            discover it: after two days your history still shows that, say,
+            clarity needed work on a given answer — but the answer itself is
+            gone, and you will not be able to re-read what you said. That is the
+            trade we chose, not a fault.
+          </p>
+
+          <p className="mt-3 leading-relaxed">
+            Your rows are yours: they are written and read under row-level
+            security as your own account, so no other signed-in person can
+            reach them. To delete your history or the whole account, write to{" "}
+            <a
+              className="text-brand underline"
+              href={`mailto:${CONTACT_EMAIL}?subject=Delete%20my%20account`}
+            >
+              {CONTACT_EMAIL}
+            </a>
+            .
           </p>
         </section>
       </div>

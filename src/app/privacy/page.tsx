@@ -28,8 +28,10 @@ export default function PrivacyPage() {
           </h2>
           <p className="mt-2 leading-relaxed">
             You record an answer. It goes to OpenAI, comes back as text, and a
-            model scores it. You read the result and it disappears. There is no
-            account, no history, and nothing about you is kept.
+            model coaches it. Signed out, you read the result and it
+            disappears — no account, no history, nothing about you kept.
+            Signed in, the coaching is saved and the transcript is deleted
+            after two days.
           </p>
         </section>
 

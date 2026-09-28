@@ -5,6 +5,13 @@ import type { AreaId, ModeId } from "@/lib/modes";
 import AccessDialog from "@/components/AccessDialog";
 import ConsentGate from "@/components/ConsentGate";
 import { RESULT_DISCLAIMER } from "@/lib/privacy";
+import {
+  AXES,
+  AXIS_CRITERIA,
+  LEVEL_MEANING,
+  type Assessment,
+  type Level,
+} from "@/lib/assessment";
 
 export interface RecorderContext {
   mode: ModeId;
@@ -21,16 +28,9 @@ type Status =
   | "feedback"
   | "done";
 
-interface Scores {
-  clarity: number;
-  accuracy: number;
-  professionalism: number;
-}
-
 interface SessionResult {
   transcript: string;
-  feedback: string;
-  scores: Scores | null;
+  assessment: Assessment;
 }
 
 // Practice answers don't need more than this; also keeps the upload well
@@ -193,13 +193,10 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
         }
         throw new Error(body?.error ?? "Feedback generation failed");
       }
-      const { feedback, scores } = (await fRes.json()) as {
-        feedback: string;
-        scores: Scores | null;
-      };
+      const { assessment } = (await fRes.json()) as { assessment: Assessment };
 
       // Results live in this component and nowhere else — no save step.
-      setResult({ transcript, feedback, scores });
+      setResult({ transcript, assessment });
       setStatus("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -289,19 +286,32 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
 
       {result && (
         <div className="mt-6 space-y-6">
-          {result.scores && (
-            <section>
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Scores
-              </h3>
-              <div className="mt-2 grid grid-cols-3 gap-3">
-                <ScoreBar label="Clarity" value={result.scores.clarity} />
-                <ScoreBar label="Accuracy" value={result.scores.accuracy} />
-                <ScoreBar
-                  label="Professionalism"
-                  value={result.scores.professionalism}
+          {result.assessment.summary && (
+            <p className="text-slate-800">{result.assessment.summary}</p>
+          )}
+
+          <section>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              How it held up
+            </h3>
+            <div className="mt-2 space-y-3">
+              {AXES.map(axis => (
+                <AxisCard
+                  key={axis}
+                  label={axis}
+                  criterion={AXIS_CRITERIA[axis]}
+                  verdict={result.assessment.axes[axis]}
                 />
-              </div>
+              ))}
+            </div>
+          </section>
+
+          {result.assessment.next && (
+            <section className="rounded-lg border border-brand/30 bg-brand/5 p-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-brand">
+                Next time
+              </h3>
+              <p className="mt-2 text-slate-800">{result.assessment.next}</p>
             </section>
           )}
           <section>
@@ -312,15 +322,6 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
               {result.transcript}
             </p>
           </section>
-          <section>
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-              AI Feedback
-            </h3>
-            <p className="mt-2 whitespace-pre-wrap text-slate-800">
-              {result.feedback}
-            </p>
-          </section>
-
           <p className="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-500">
             {RESULT_DISCLAIMER}
           </p>
@@ -330,19 +331,45 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
   );
 }
 
-function ScoreBar({ label, value }: { label: string; value: number }) {
+const LEVEL_STYLE: Record<Level, string> = {
+  solid: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  "needs work": "border-amber-200 bg-amber-50 text-amber-800",
+  missing: "border-slate-200 bg-slate-50 text-slate-600",
+};
+
+/**
+ * One axis: where it landed, what it is judged on, and why it landed there.
+ * The criterion is shown to the learner and not kept in the prompt alone —
+ * a verdict whose basis is hidden is the thing the scores used to be.
+ */
+function AxisCard({
+  label,
+  criterion,
+  verdict,
+}: {
+  label: string;
+  criterion: string;
+  verdict: { level: Level; note: string };
+}) {
   return (
-    <div className="rounded-lg border border-slate-200 p-3">
-      <div className="flex items-baseline justify-between">
-        <span className="text-xs font-medium text-slate-500">{label}</span>
-        <span className="text-lg font-semibold text-brand">{value}</span>
+    <div className="rounded-lg border border-slate-200 p-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="font-medium capitalize text-slate-900">{label}</span>
+        <span
+          className={`rounded-full border px-2 py-0.5 text-xs font-medium ${LEVEL_STYLE[verdict.level]}`}
+        >
+          {verdict.level}
+        </span>
+        <span className="text-xs text-slate-500">
+          {LEVEL_MEANING[verdict.level]}
+        </span>
       </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
-        <div
-          className="h-full rounded-full bg-brand"
-          style={{ width: `${value}%` }}
-        />
-      </div>
+
+      {verdict.note && (
+        <p className="mt-2 text-sm text-slate-700">{verdict.note}</p>
+      )}
+
+      <p className="mt-2 text-xs text-slate-500">{criterion}</p>
     </div>
   );
 }

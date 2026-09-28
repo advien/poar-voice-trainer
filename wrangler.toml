@@ -18,6 +18,12 @@ main = ".open-next/worker.js"
 # separately and are unaffected.
 keep_vars = true
 
+# The app answers on voice-trainer.advien.tech; the *.workers.dev address was
+# only ever the way in before the domain existed. Preview URLs are a separate
+# setting and stay on, so pull-request builds still get a link to check.
+workers_dev = false
+preview_urls = true
+
 # Asset bindings emitted by @opennextjs/cloudflare's build step.
 [assets]
 directory = ".open-next/assets"

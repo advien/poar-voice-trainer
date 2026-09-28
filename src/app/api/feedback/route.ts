@@ -4,6 +4,11 @@ import { feedbackSystemPrompt, getMode } from "@/lib/modes";
 import { clientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
 import { checkAccess, paymentRequired } from "@/lib/access";
 import { recordUsage } from "@/lib/usage";
+import {
+  ASSESSMENT_FORMAT,
+  parseAssessment,
+  type Assessment,
+} from "@/lib/assessment";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -11,25 +16,14 @@ export const maxDuration = 60;
 // Cap transcript length sent to the model (chars ≈ generous 5-min answer).
 const MAX_TRANSCRIPT_CHARS = 8_000;
 
-export interface Scores {
-  clarity: number;
-  accuracy: number;
-  professionalism: number;
-}
-
-const clampScore = (n: unknown): number => {
-  const v = Math.round(Number(n));
-  if (!Number.isFinite(v)) return 0;
-  return Math.min(100, Math.max(0, v));
-};
-
 /**
  * POST /api/feedback
  * Body: { mode: string, transcript: string }
- * Returns: { feedback: string, scores: Scores }
+ * Returns: { assessment: Assessment }
  *
- * Generates coaching feedback + 0–100 scores (clarity, accuracy,
- * professionalism) on the transcript with OpenAI, using a per-mode prompt.
+ * Coaches the transcript against the mode's rubric: a level and a sentence per
+ * axis, and one instruction for the next attempt. See src/lib/assessment.ts for
+ * why this is not a score out of a hundred.
  */
 export async function POST(request: Request) {
   const rl = rateLimit(`feedback:${clientIp(request)}`, 10, 60_000);
@@ -74,12 +68,7 @@ export async function POST(request: Request) {
       messages: [
         {
           role: "system",
-          content:
-            feedbackSystemPrompt(practiceMode) +
-            "\n\nReturn JSON with this exact shape: " +
-            '{ "feedback": string, "clarity": number, "accuracy": number, ' +
-            '"professionalism": number }. The three scores are integers 0-100 ' +
-            "rating this specific answer. Put the prose coaching in `feedback`.",
+          content: `${feedbackSystemPrompt(practiceMode)}\n\n${ASSESSMENT_FORMAT}`,
         },
         {
           role: "user",
@@ -98,21 +87,9 @@ export async function POST(request: Request) {
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
-    const parsed = JSON.parse(raw) as {
-      feedback?: string;
-      clarity?: number;
-      accuracy?: number;
-      professionalism?: number;
-    };
+    const assessment: Assessment = parseAssessment(JSON.parse(raw));
 
-    return NextResponse.json({
-      feedback: (parsed.feedback ?? "").trim(),
-      scores: {
-        clarity: clampScore(parsed.clarity),
-        accuracy: clampScore(parsed.accuracy),
-        professionalism: clampScore(parsed.professionalism),
-      } satisfies Scores,
-    });
+    return NextResponse.json({ assessment });
   } catch (err) {
     console.error("Feedback generation failed:", err);
     return NextResponse.json(

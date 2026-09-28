@@ -28,7 +28,9 @@ is drawn that way** — the reasoning matters more than the feature list.
 
 - Three practice modes — *Explain Term*, *Patient Communication*, *Interview
   Practice* — each with its own coaching rubric.
-- Record in the browser → transcribe with Whisper → coaching in seconds.
+- Record in the browser → transcribe with Whisper → coaching in seconds:
+  each axis comes back as *solid / needs work / missing* with a sentence naming
+  what was said, plus one instruction for the next attempt.
 - A question bank of 300+ prompts tagged by mode × POAR area, generated with an
   LLM pipeline that drops near-duplicates by embedding similarity.
 - **Nothing is stored**: no audio, no transcript, no scores. Results live in the
@@ -38,7 +40,7 @@ is drawn that way** — the reasoning matters more than the feature list.
 - Sign-in by one-time link (invitation-only), and a private page showing what
   the service costs to run.
 
-Two decisions in v1 are worth explaining, because both were reversals.
+Three decisions in v1 are worth explaining, because all three were reversals.
 
 **Why nothing is stored.** Sessions used to be saved. They were written with the
 service-role key — which bypasses row-level security — and read back without a
@@ -52,37 +54,36 @@ used your free run" is theatre — the endpoints are reachable directly. The cou
 is enforced in the route handlers and stored in the database, because an
 in-memory counter on Cloudflare hands out one free run *per edge isolate*.
 
+**Why there are no scores.** The axes used to come back as numbers from 0 to
+100. Nothing justified that precision — a model will not reproduce 71 against
+76 on the same answer — and a learner reads any number as a grade, which is the
+dynamic a practice tool should avoid. Three named levels are something a model
+applies consistently, and the criterion each axis is judged on is shown to the
+learner rather than living only in the prompt.
+
 ### v2 — next
 
-**Make the feedback honest, then let it accumulate.**
+**Let the feedback accumulate, then measure what is missing.**
 
-1. **Replace the 0–100 scores.** They are the weakest thing in v1: three numbers
-   with no stated basis, which nobody can reproduce and everybody reads as a
-   grade. They become three named levels per axis (*solid / needs work /
-   missing*) plus one concrete instruction for the next attempt. Three levels
-   are something a model applies consistently; a hundred gradations are not. It
-   also changes what the tool feels like — a coach pointing at the next move
-   rather than an examiner handing back a mark.
-
-2. **History in the account.** Attempts are saved against the signed-in user —
+1. **History in the account.** Attempts are saved against the signed-in user —
    question, date, per-axis level, the instruction — read through the anon key
    under RLS, never the service-role key that caused the v1 leak.
 
-3. **Transcripts expire after two days.** Long enough to re-read yesterday's
+2. **Transcripts expire after two days.** Long enough to re-read yesterday's
    answer, short enough that the app is not a library of recorded speech. A
    scheduled job deletes them; the verdicts stay. The privacy notice is updated
    *before* the first row is written, not after.
 
-4. **Trends worth reading.** Not an average score over time, but counts: how
+3. **Trends worth reading.** Not an average score over time, but counts: how
    often each axis needed work, and whether that is falling. A number you can
    act on beats a number you can only feel bad about.
 
-5. **Gap analysis against reference answers** — the point of the whole thing,
+4. **Gap analysis against reference answers** — the point of the whole thing,
    and deliberately last. Each question gets a checklist of the elements a good
    answer covers; the model reports *covered / partial / missing* per element;
    the account shows the pattern: "you skip the follow-up plan in 7 answers out
    of 9." It comes last because it depends on everything above — on the stored
-   attempts of step 2, and on checklists that have to be researched and written
+   attempts of step 1, and on checklists that have to be researched and written
    rather than invented. Questions without a checklist keep working as they do
    now and simply sit out of the statistics.
 

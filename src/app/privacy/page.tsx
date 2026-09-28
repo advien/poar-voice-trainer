@@ -42,13 +42,13 @@ export default function PrivacyPage() {
           <p className="mt-2 leading-relaxed">
             The audio is recorded in your browser and sent to{" "}
             <strong>OpenAI</strong> for transcription (Whisper) and for the
-            coaching text and scores (GPT-4o mini). OpenAI processes API data on
+            coaching text and the level for each axis (GPT-4o mini). OpenAI processes API data on
             servers outside the EU and, under its API terms, does not use it to
             train its models.
           </p>
           <p className="mt-3 leading-relaxed">
             The audio is not written to any database here and is not kept after
-            the request. The transcript, the feedback and the scores are sent
+            the request. The transcript, the coaching and the levels are sent
             back to your browser and held in the page while it is open. Close
             the tab and they are gone.
           </p>
@@ -81,7 +81,7 @@ export default function PrivacyPage() {
           </ul>
           <p className="mt-3 leading-relaxed">
             That is the whole list for the open trial. No transcripts, no
-            audio, no scores, no name, no email, no analytics, no advertising
+            audio, no coaching kept, no name, no email, no analytics, no advertising
             or tracking cookies.
           </p>
         </section>

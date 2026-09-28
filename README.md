@@ -1,125 +1,185 @@
 # 🎙️ POAR Voice Trainer
 
-**Practice explaining prosthetics, orthotics & assistive robotics — out loud — and get instant AI coaching.**
+**Practice explaining prosthetics, orthotics & assistive robotics — out loud — and get structured coaching back.**
 
 [![CI](https://github.com/advien/poar-voice-trainer/actions/workflows/ci.yml/badge.svg)](https://github.com/advien/poar-voice-trainer/actions/workflows/ci.yml)
-![Next.js](https://img.shields.io/badge/Next.js-14-black)
+![Next.js](https://img.shields.io/badge/Next.js-15-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green)
 
-> **Live demo:** _deploying — link coming soon_ · Clinicians and students in the
-> prosthetics/orthotics/assistive-robotics (POAR) field must explain complex
-> devices clearly to patients, peers, and interviewers. This app turns that soft
-> skill into deliberate practice: **speak an answer, get it transcribed, scored,
-> and coached — then track your progress over time.**
+**Live:** [voice-trainer.advien.tech](https://voice-trainer.advien.tech) — one free run per visitor, no sign-up.
 
-<!-- Screenshots live in docs/ and are embedded once captured. -->
+Clinicians and students in the prosthetics / orthotics / assistive-robotics
+(POAR) field have to explain complex devices clearly to patients, peers and
+interviewers. That is a *spoken* skill, and there is nowhere to rehearse it with
+feedback. This app is that place: speak an answer, get it transcribed and
+coached against a rubric, try again.
 
-## Why I built it
+---
 
-Explaining a myoelectric prosthesis to an anxious patient, or defending a
-clinical decision in an interview, is a *spoken* skill — but there's nowhere to
-rehearse it with feedback. POAR Voice Trainer is a focused tool for that: it
-listens, transcribes, and gives structured, mode-specific coaching, so a learner
-can measurably improve clarity, accuracy, and professionalism.
+## Versions
 
-## Features
+The project ships in stages. What follows is what each stage does and **why it
+is drawn that way** — the reasoning matters more than the feature list.
 
-- **Three practice modes** — *Explain Term*, *Patient Communication*, *Interview
-  Practice*, each with a tailored coaching rubric.
-- **Voice → transcript → feedback loop** — record in the browser, transcribe with
-  OpenAI Whisper, and get AI coaching in seconds.
-- **Structured scoring** — every answer is rated 0–100 on **clarity, accuracy,
-  and professionalism**, persisted for trend tracking.
-- **Progress tracking** — averages, an over-time trend, and an automatic
-  **weakest-area callout** that nudges you toward your lowest-scoring mode.
-- **Session history & detail** — revisit any past answer's transcript, feedback,
-  and scores, and **repeat the exact question** to try again.
-- **Question bank (300+)** tagged by **mode × POAR area** (prosthetics /
-  orthotics / robotics), including cross-cutting questions, generated with an
-  LLM pipeline that uses **embedding-based semantic dedup**.
-- **Review before submit** — recording timer, listen-back, and re-record.
+### v1 — shipped
+
+**The loop works, and it keeps nothing.**
+
+- Three practice modes — *Explain Term*, *Patient Communication*, *Interview
+  Practice* — each with its own coaching rubric.
+- Record in the browser → transcribe with Whisper → coaching in seconds.
+- A question bank of 300+ prompts tagged by mode × POAR area, generated with an
+  LLM pipeline that drops near-duplicates by embedding similarity.
+- **Nothing is stored**: no audio, no transcript, no scores. Results live in the
+  open tab and end with it.
+- One free run per visitor, then a hard stop, so a public voice app cannot drain
+  the API budget.
+- Sign-in by one-time link (invitation-only), and a private page showing what
+  the service costs to run.
+
+Two decisions in v1 are worth explaining, because both were reversals.
+
+**Why nothing is stored.** Sessions used to be saved. They were written with the
+service-role key — which bypasses row-level security — and read back without a
+filter, so the progress page showed every visitor the transcripts of what other
+people had said out loud. The fix was not to scope the query. It was to stop
+keeping the data: a trial that stores nothing cannot leak anything, and the
+privacy notice can then say something simple and true.
+
+**Why the gate lives in the API, not the interface.** A dialog saying "you have
+used your free run" is theatre — the endpoints are reachable directly. The count
+is enforced in the route handlers and stored in the database, because an
+in-memory counter on Cloudflare hands out one free run *per edge isolate*.
+
+### v2 — next
+
+**Make the feedback honest, then let it accumulate.**
+
+1. **Replace the 0–100 scores.** They are the weakest thing in v1: three numbers
+   with no stated basis, which nobody can reproduce and everybody reads as a
+   grade. They become three named levels per axis (*solid / needs work /
+   missing*) plus one concrete instruction for the next attempt. Three levels
+   are something a model applies consistently; a hundred gradations are not. It
+   also changes what the tool feels like — a coach pointing at the next move
+   rather than an examiner handing back a mark.
+
+2. **History in the account.** Attempts are saved against the signed-in user —
+   question, date, per-axis level, the instruction — read through the anon key
+   under RLS, never the service-role key that caused the v1 leak.
+
+3. **Transcripts expire after two days.** Long enough to re-read yesterday's
+   answer, short enough that the app is not a library of recorded speech. A
+   scheduled job deletes them; the verdicts stay. The privacy notice is updated
+   *before* the first row is written, not after.
+
+4. **Trends worth reading.** Not an average score over time, but counts: how
+   often each axis needed work, and whether that is falling. A number you can
+   act on beats a number you can only feel bad about.
+
+5. **Gap analysis against reference answers** — the point of the whole thing,
+   and deliberately last. Each question gets a checklist of the elements a good
+   answer covers; the model reports *covered / partial / missing* per element;
+   the account shows the pattern: "you skip the follow-up plan in 7 answers out
+   of 9." It comes last because it depends on everything above — on the stored
+   attempts of step 2, and on checklists that have to be researched and written
+   rather than invented. Questions without a checklist keep working as they do
+   now and simply sit out of the statistics.
+
+Each checklist will carry its source and a status saying whether a clinician has
+reviewed it. Without that provenance the tool would be asserting clinical
+standards on no authority, which is not something to do quietly in a medical
+domain.
+
+---
 
 ## How it works
 
 ```
- ┌── record (MediaRecorder) ──┐
- │                            ▼
- │              POST /api/transcribe  →  OpenAI Whisper  →  transcript
- │                            │
- │                            ▼
- │              POST /api/feedback    →  OpenAI (JSON)   →  coaching + scores
- │                            │
- │                            ▼
- └──────────────  POST /api/sessions  →  Supabase (Postgres + RLS)
-                              │
-                              ▼
-                      /progress  (trends, weak-spot, history)
+ ┌── record (MediaRecorder) ───┐
+ │                             ▼
+ │      POST /api/transcribe  →  gate (one free run)  →  OpenAI Whisper
+ │                             │
+ │                             ▼
+ │      POST /api/feedback    →  gate check  →  OpenAI (JSON)  →  coaching
+ │                             │
+ └─────────────────────────────┘
+                               │
+                               ▼
+                     shown in the page, then gone
 ```
+
+Supabase holds three small tables and no user content: attempts against the free
+allowance, acceptance of the privacy notice, and per-call OpenAI consumption.
 
 ## Tech stack
 
 | Layer | Choice |
 | --- | --- |
-| Framework | **Next.js 14** (App Router, RSC) + **TypeScript** (strict) |
+| Framework | **Next.js 15** (App Router, RSC) + **TypeScript** (strict) |
 | Styling | **Tailwind CSS** |
 | Database | **Supabase** (Postgres + Row-Level Security) |
+| Auth | Supabase magic link, sign-up disabled |
 | Speech-to-text | **OpenAI Whisper** |
-| Feedback + scoring | **OpenAI** chat (JSON mode) |
-| Hosting | **Vercel** (Node serverless functions) |
+| Coaching | **OpenAI** chat (JSON mode) |
+| Hosting | **Cloudflare Workers** via `@opennextjs/cloudflare` |
 | CI | **GitHub Actions** — lint, typecheck, build |
 
 ## Notable engineering decisions
 
-- **Lazy API clients** — OpenAI/Supabase clients are constructed per-request, so
-  `next build` and CI never need real secrets.
-- **Rate limiting + input caps** — per-IP fixed-window limiter on every route,
-  plus audio-size (15 MB) and transcript-length caps, to protect API spend on a
-  public, unauthenticated demo.
-- **RLS by default** — questions are world-readable (active only); sessions are
-  locked down; server writes use the service-role key.
-- **`no-store` Supabase fetches** — session reads opt out of Next.js's fetch
-  Data Cache so `/progress` always reflects the latest rows.
+- **The gate degrades, never opens.** If the counter table is missing or the
+  database is unreachable, the limiter falls back to an in-memory count rather
+  than letting everyone through. A forgotten migration must not silently disable
+  a spend control.
+- **Visitors are a salted hash.** The free-run counter is keyed by
+  `sha256(salt + IP)`; the address itself is never written down. The salt is a
+  worker secret, and rotating it resets everyone's allowance.
+- **Secrets stay out of the bundle.** OpenNext bakes `.env.local` into the build
+  output, which would ship the OpenAI and service-role keys inside the artifact.
+  `npm run cf:build` blanks them first, so a misconfigured deploy fails loudly
+  instead of quietly running on a baked key.
+- **One source of wording for the privacy notice.** The short notice, the line
+  under the results and the full page all read from `src/lib/privacy.ts`, and
+  consent rows record the policy version they were given against. Bumping the
+  version re-asks everyone.
+- **Metering describes the service, not the user.** Each paid call records its
+  model and counts; no hash, no transcript, nothing tying a call to a person.
+- **Rate limiting + input caps** — a per-IP limiter on every route, a 15 MB
+  audio cap and a transcript-length cap.
 - **Semantic dedup** — the question generator embeds candidates and drops
-  near-duplicates by cosine similarity, not just exact-text matches.
-- **Free-tier keep-alive** — a daily GitHub Action performs a real DB write via
-  a locked-down RPC so the Supabase project never pauses.
-- **No auth, by design (MVP)** — this is a single-user tool; `/progress` reads
-  all sessions server-side. Auth + per-user scoping is the documented next step.
+  near-duplicates by cosine similarity, not just exact matches.
 
 ## Getting started
 
 ```bash
-# 1. Install
 npm install
-
-# 2. Configure environment
-cp .env.example .env.local   # then fill in Supabase + OpenAI keys
-
-# 3. Apply the database schema (Supabase SQL editor)
-#    Run supabase/schema.sql, then supabase/seed.sql, then supabase/keepalive.sql
-
-# 4. Run
-npm run dev                  # http://localhost:3000
+cp .env.example .env.local        # Supabase + OpenAI keys, gate salt and code
+npm run dev                       # http://localhost:3000
 ```
 
-Optional — grow the question bank:
+In the Supabase SQL editor run `supabase/schema.sql`, `seed.sql`,
+`keepalive.sql`, then `free_usage.sql`, `consent_log.sql` and `usage_log.sql`.
+
+Grow the question bank:
 
 ```bash
-npm run gen:questions -- --dry-run   # preview generation (no writes)
+npm run gen:questions -- --dry-run   # preview (no writes)
 npm run gen:questions                # generate + insert (needs service_role)
 ```
 
 ## Environment variables
 
-See [`.env.example`](.env.example). Summary:
+See [`.env.example`](.env.example).
 
 | Variable | Purpose |
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase client (public) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-side reads/writes (secret) |
-| `OPENAI_API_KEY` | Whisper + feedback (secret) |
-| `FEEDBACK_MODEL` | Optional feedback model (default `gpt-4o-mini`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-side writes (secret) |
+| `OPENAI_API_KEY` | Whisper + coaching (secret) |
+| `FEEDBACK_MODEL` | Optional coaching model (default `gpt-4o-mini`) |
+| `FREE_ATTEMPTS` | Free runs per visitor (default 1) |
+| `ACCESS_SALT` | Salt for the visitor hash (secret) |
+| `ACCESS_CODE` | Bypasses the gate for demos (secret) |
 
 ## Project structure
 
@@ -129,41 +189,40 @@ src/
     page.tsx                    # Landing
     modes/page.tsx              # Mode selection
     session/[mode]/page.tsx     # Practice session (?q= repeats a question)
-    progress/page.tsx           # Trends, weak-spot, history
-    progress/[id]/page.tsx      # Session detail
-    api/{transcribe,feedback,sessions}/route.ts
-  components/{VoiceRecorder,SessionExperience,ModeCard}.tsx
+    privacy/page.tsx            # The full notice
+    progress/page.tsx           # Why there is no history yet
+    login/page.tsx              # Magic-link sign-in
+    account/page.tsx            # Signed-in area
+    usage/page.tsx              # Running cost (access code)
+    api/{transcribe,feedback,consent,access}/route.ts
+  components/{VoiceRecorder,ConsentGate,AccessDialog,AccessCodeForm,…}.tsx
   lib/
-    modes.ts  questions.ts  sessions.ts  ratelimit.ts  openai.ts
-    supabase/{client,server,admin}.ts
-scripts/
-  concepts.ts  generate-questions.ts    # LLM question generator + dedup
+    modes.ts  questions.ts  access.ts  usage.ts  privacy.ts
+    ratelimit.ts  openai.ts  supabase/{client,server,admin}.ts
+  middleware.ts                 # Session refresh + /account guard
 supabase/
-  schema.sql  seed.sql  keepalive.sql    # DDL + RLS, seed, keep-alive RPC
+  schema.sql  seed.sql  keepalive.sql
+  free_usage.sql  consent_log.sql  usage_log.sql
+docs/
+  DEPLOY_CLOUDFLARE.md  PRIVACY_CHECKLIST.md
 ```
 
-## Deploy (Vercel)
+## Deploy
 
-Full step-by-step (env vars, `poar.advien.tech` custom domain, post-deploy
-checklist, troubleshooting): **[docs/DEPLOY.md](docs/DEPLOY.md)**.
+**[docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md)** — secrets, build
+variables, custom domain, Supabase auth configuration.
 
-Quick version: import the repo on [vercel.com](https://vercel.com) (Next.js is
-auto-detected), add the environment variables above under **Settings →
-Environment Variables**, and deploy. AI routes run on the Node runtime with
-`maxDuration = 60`.
+```bash
+npm run cf:build
+npm run cf:deploy
+```
 
-The **Supabase keep-alive** GitHub Action is independent of Vercel; set its
-`SUPABASE_URL` / `SUPABASE_ANON_KEY` repo secrets separately.
+## Privacy
 
-## Roadmap
-
-- [x] Whisper transcription + OpenAI feedback
-- [x] Supabase persistence, question bank (mode × area) with semantic dedup
-- [x] Structured scoring + progress view, session detail, question repeat
-- [x] Rate limiting, CI, keep-alive, branch protection
-- [ ] Auth + per-user history (scope `/progress` to the signed-in user)
-- [ ] Unit tests for scoring / rate-limit / dedup
-- [ ] Optional audio retention in Supabase Storage
+The trial keeps nothing, and [docs/PRIVACY_CHECKLIST.md](docs/PRIVACY_CHECKLIST.md)
+lists every claim in the notice with the command that verifies it. Run it
+whenever the data flow changes: a policy that has drifted from the code is worse
+than no policy, because it is a promise no longer kept.
 
 ## Acknowledgements
 

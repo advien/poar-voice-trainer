@@ -33,3 +33,7 @@ yarn-error.log*
 # Cloudflare Workers build output
 .open-next/
 .wrangler/
+
+# Working notes for the reference-answer work (v2). Kept out of the public
+# repo until it ships — see research/sources.md.
+/research/

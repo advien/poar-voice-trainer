@@ -20,6 +20,10 @@ export const CONSENT_SUMMARY =
 export const RESULT_DISCLAIMER =
   "Nothing here was saved — no audio, no transcript, no result. Closing this page ends the session for good.";
 
+/** Shown under the results of a signed-in run, where the trial line would lie. */
+export const RESULT_SAVED =
+  "Saved to your account. The coaching stays in your history; the transcript is deleted in two days.";
+
 /** The standing reminder shown once consent is given. */
 export const CONSENT_STANDING =
   "Recording goes to OpenAI · nothing is stored";

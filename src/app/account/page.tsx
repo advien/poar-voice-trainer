@@ -3,6 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { summarise } from "@/lib/usage";
+import { listAttempts } from "@/lib/attempts";
+import AttemptHistory from "@/components/AttemptHistory";
 import { CONTACT_EMAIL } from "@/lib/privacy";
 
 export const metadata: Metadata = {
@@ -30,7 +32,10 @@ export default async function AccountPage() {
 
   if (!user) redirect("/login?next=/account");
 
-  const month = await summarise(30);
+  const [month, attempts] = await Promise.all([
+    summarise(30),
+    listAttempts(50),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
@@ -52,19 +57,15 @@ export default async function AccountPage() {
 
       <section className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="font-semibold text-slate-900">Practice history</h2>
-        <p className="mt-2 leading-relaxed text-slate-600">
-          Nothing is saved yet. The open trial keeps no transcripts by design,
-          and storing them for signed-in accounts is the next piece of work.
-          When it lands, your sessions, averages and trend appear here — and
-          only here, visible to you.
-        </p>
-        <p className="mt-3 text-sm text-slate-500">
-          Why the trial keeps nothing is spelled out in the{" "}
+        <p className="mt-1 text-sm text-slate-500">
+          Yours alone. The open trial keeps nothing at all — see the{" "}
           <Link href="/privacy" className="text-brand underline">
             privacy notice
           </Link>
           .
         </p>
+
+        <AttemptHistory rows={attempts} />
       </section>
 
       <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5">

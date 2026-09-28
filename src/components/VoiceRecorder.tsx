@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { AreaId, ModeId } from "@/lib/modes";
 import AccessDialog from "@/components/AccessDialog";
 import ConsentGate from "@/components/ConsentGate";
-import { RESULT_DISCLAIMER } from "@/lib/privacy";
+import { RESULT_DISCLAIMER, RESULT_SAVED } from "@/lib/privacy";
 import {
   AXES,
   AXIS_CRITERIA,
@@ -31,6 +31,8 @@ type Status =
 interface SessionResult {
   transcript: string;
   assessment: Assessment;
+  /** True when the server stored this run against a signed-in account. */
+  saved: boolean;
 }
 
 // Practice answers don't need more than this; also keeps the upload well
@@ -179,7 +181,12 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
       const fRes = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, transcript }),
+        body: JSON.stringify({
+          mode,
+          transcript,
+          questionId: context.questionId,
+          prompt: context.prompt,
+        }),
       });
       if (!fRes.ok) {
         const body = (await fRes.json().catch(() => null)) as {
@@ -193,10 +200,13 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
         }
         throw new Error(body?.error ?? "Feedback generation failed");
       }
-      const { assessment } = (await fRes.json()) as { assessment: Assessment };
+      const { assessment, saved } = (await fRes.json()) as {
+        assessment: Assessment;
+        saved?: boolean;
+      };
 
       // Results live in this component and nowhere else — no save step.
-      setResult({ transcript, assessment });
+      setResult({ transcript, assessment, saved: saved === true });
       setStatus("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -323,7 +333,7 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
             </p>
           </section>
           <p className="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-500">
-            {RESULT_DISCLAIMER}
+            {result.saved ? RESULT_SAVED : RESULT_DISCLAIMER}
           </p>
         </div>
       )}

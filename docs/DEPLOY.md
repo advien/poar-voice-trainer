@@ -1,3 +1,8 @@
+> **Superseded.** The app runs on Cloudflare Workers — see
+> [DEPLOY_CLOUDFLARE.md](DEPLOY_CLOUDFLARE.md). This guide is kept because the
+> Vercel route still works if it is ever needed, but nothing here is current:
+> the domain, the environment variables and the gate have all moved on.
+
 # Deploying POAR Voice Trainer to Vercel
 
 Step-by-step guide to put the app live at **`poar.advien.tech`**.

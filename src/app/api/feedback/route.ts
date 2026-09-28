@@ -9,6 +9,7 @@ import {
   parseAssessment,
   type Assessment,
 } from "@/lib/assessment";
+import { saveAttempt } from "@/lib/attempts";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -41,10 +42,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const { mode, transcript } = (await request.json()) as {
-    mode?: string;
-    transcript?: string;
-  };
+  const { mode, transcript, questionId, prompt } =
+    (await request.json()) as {
+      mode?: string;
+      transcript?: string;
+      questionId?: string;
+      prompt?: string;
+    };
 
   if (!transcript) {
     return NextResponse.json({ error: "Missing transcript." }, { status: 400 });
@@ -89,7 +93,17 @@ export async function POST(request: Request) {
     const raw = completion.choices[0]?.message?.content ?? "{}";
     const assessment: Assessment = parseAssessment(JSON.parse(raw));
 
-    return NextResponse.json({ assessment });
+    // Saved only for a signed-in account; the trial stores nothing and
+    // saveAttempt returns null rather than treating that as an error.
+    const attemptId = await saveAttempt({
+      mode: practiceMode.id,
+      questionId: questionId ?? null,
+      prompt: prompt ?? practiceMode.prompt,
+      transcript,
+      assessment,
+    });
+
+    return NextResponse.json({ assessment, saved: attemptId !== null });
   } catch (err) {
     console.error("Feedback generation failed:", err);
     return NextResponse.json(

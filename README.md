@@ -65,18 +65,19 @@ learner rather than living only in the prompt.
 
 **Let the feedback accumulate, then measure what is missing.**
 
-1. **History in the account.** Attempts are saved against the signed-in user —
-   question, date, per-axis level, the instruction — read through the anon key
-   under RLS, never the service-role key that caused the v1 leak.
+1. ~~**History in the account.**~~ Done. Attempts are saved against the
+   signed-in user — question, date, per-axis level, the instruction — read
+   through the anon key under RLS, never the service-role key that caused the
+   v1 leak.
 
-2. **Transcripts expire after two days.** Long enough to re-read yesterday's
-   answer, short enough that the app is not a library of recorded speech. A
-   scheduled job deletes them; the verdicts stay. The privacy notice is updated
-   *before* the first row is written, not after.
+2. ~~**Transcripts expire after two days.**~~ Done. Long enough to re-read
+   yesterday's answer, short enough that the app is not a library of recorded
+   speech. A scheduled job empties the column and leaves the row; the privacy
+   notice was updated before the first one was written.
 
-3. **Trends worth reading.** Not an average score over time, but counts: how
-   often each axis needed work, and whether that is falling. A number you can
-   act on beats a number you can only feel bad about.
+3. ~~**Trends worth reading.**~~ Done. Not an average over time but a count:
+   how often each axis needed work. A number you can act on beats a number you
+   can only feel bad about.
 
 4. **Gap analysis against reference answers** — the point of the whole thing,
    and deliberately last. Each question gets a checklist of the elements a good
@@ -91,6 +92,11 @@ Each checklist will carry its source and a status saying whether a clinician has
 reviewed it. Without that provenance the tool would be asserting clinical
 standards on no authority, which is not something to do quietly in a medical
 domain.
+
+5. **Interview questions from employers, not examiners.** The bank was
+   generated from a prompt asking what "an examiner might ask", which shows:
+   the questions read like a viva rather than a job interview. Rewriting that
+   means sourcing real questions, so it waits alongside the checklists above.
 
 ---
 

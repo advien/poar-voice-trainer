@@ -31,3 +31,8 @@ binding = "ASSETS"
 
 [observability]
 enabled = true
+
+# Required by `wrangler preview`, which Workers Builds runs for pull requests.
+# The block may be empty: assets, compatibility settings and placement stay at
+# the top level. Without it the preview step fails while the build succeeds.
+[previews]

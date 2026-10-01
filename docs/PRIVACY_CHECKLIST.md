@@ -77,10 +77,10 @@ results line and the full page cannot disagree with each other.
 ### "An account holds an email and the saved practice history"
 
 - [ ] The only code storing anything against `user_id` is the `attempts` code:
-      `grep -rln "user_id" src` lists `src/lib/attempts.ts` alone. (`supabase/
-      schema.sql` still declares a legacy `sessions` table with a `user_id`;
-      nothing in `src` writes to it, and it should stay empty — check with
-      `select count(*) from public.sessions`.)
+      `grep -rln "user_id" src` lists `src/lib/attempts.ts` alone.
+- [ ] The legacy `sessions` table is gone from the database: `select
+      to_regclass('public.sessions')` returns null. (Dropped 2026-10-01 after
+      its four test rows were deleted; `schema.sql` no longer defines it.)
 - [ ] `src/lib/attempts.ts` uses the request-scoped anon client and never
       `getSupabaseAdmin`: `grep -n "getSupabaseAdmin" src/lib/attempts.ts`
       returns nothing.

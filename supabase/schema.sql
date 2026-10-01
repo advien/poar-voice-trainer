@@ -53,61 +53,13 @@ create policy "Anyone can read active questions"
   on public.questions for select
   using (is_active);
 
--- One row per completed practice session.
-create table if not exists public.sessions (
-  id          uuid primary key default gen_random_uuid(),
-  user_id     uuid references auth.users (id) on delete cascade,
-  mode        practice_mode not null,
-
-  -- POAR area tags the question carried (denormalized for history).
-  areas       poar_area[],
-
-  -- The question that was answered (nullable: free-form sessions allowed).
-  question_id uuid references public.questions (id) on delete set null,
-
-  -- The prompt the user responded to (denormalized for history).
-  prompt      text,
-
-  -- Whisper transcript of the user's spoken answer.
-  transcript  text not null,
-
-  -- AI-generated feedback (Claude/OpenAI).
-  feedback    text,
-
-  -- Optional structured scores for later analytics (0–100).
-  clarity_score        smallint,
-  accuracy_score       smallint,
-  professionalism_score smallint,
-
-  -- Optional: path to stored audio in Supabase Storage (if retained).
-  audio_path  text,
-
-  created_at  timestamptz not null default now()
-);
-
-create index if not exists sessions_user_id_created_at_idx
-  on public.sessions (user_id, created_at desc);
-
 -- ────────────────────────────────────────────────────────────────
--- Row Level Security: users may only see and write their own sessions.
--- ────────────────────────────────────────────────────────────────
-alter table public.sessions enable row level security;
-
-create policy "Users can read their own sessions"
-  on public.sessions for select
-  using (auth.uid() = user_id);
-
-create policy "Users can insert their own sessions"
-  on public.sessions for insert
-  with check (auth.uid() = user_id);
-
-create policy "Users can delete their own sessions"
-  on public.sessions for delete
-  using (auth.uid() = user_id);
-
--- ────────────────────────────────────────────────────────────────
--- Optional (later milestone): a Storage bucket for retained audio.
---   insert into storage.buckets (id, name, public)
---   values ('recordings', 'recordings', false);
--- with RLS policies scoping objects to auth.uid().
+-- Practice history lives in attempts.sql, not here.
+--
+-- This file used to define a `sessions` table that kept the full transcript,
+-- free-text feedback and 0-100 scores, and an optional audio bucket. All of it
+-- is gone on purpose: sessions leaked every visitor's transcripts once, the
+-- scores were replaced by named levels, and audio is never kept. If an older
+-- database still has the table, drop it by hand:
+--   drop table if exists public.sessions;
 -- ────────────────────────────────────────────────────────────────

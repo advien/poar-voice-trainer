@@ -15,10 +15,10 @@ results line and the full page cannot disagree with each other.
 | Place | What it says | File |
 |---|---|---|
 | Before the first recording | Short notice + checkbox, links to the full page | `src/components/ConsentGate.tsx` |
-| Under the results | Nothing was saved, closing the page ends it | `src/components/VoiceRecorder.tsx` |
+| Under the results | Signed out: nothing was saved. Signed in: saved to the account, transcript deleted in two days | `src/components/VoiceRecorder.tsx` |
 | Footer, every page | Link to the notice | `src/app/layout.tsx` |
 | `/privacy` | The full notice | `src/app/privacy/page.tsx` |
-| `/progress` | Why there is no history, and where it will live | `src/app/progress/page.tsx` |
+| `/progress` | Why the trial has no history, and that the account holds it | `src/app/progress/page.tsx` |
 | When the free attempt is gone | The gate dialog, with the contact address | `src/components/AccessDialog.tsx` |
 
 ---

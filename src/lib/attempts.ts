@@ -12,7 +12,14 @@
  * an attempt you can still learn from but no longer re-read.
  */
 import { createClient } from "@/lib/supabase/server";
-import { AXES, type Assessment, type Axis, type Level } from "@/lib/assessment";
+import {
+  AXES,
+  parseStoredChecklist,
+  type Assessment,
+  type Axis,
+  type ChecklistVerdict,
+  type Level,
+} from "@/lib/assessment";
 import type { ModeId } from "@/lib/modes";
 
 export interface AttemptInput {
@@ -33,6 +40,8 @@ export interface AttemptRow {
   summary: string | null;
   next_step: string | null;
   axes: Record<Axis, { level: Level | null; note: string | null }>;
+  /** Null when the question had no checklist. */
+  checklist: ChecklistVerdict[] | null;
 }
 
 /** Column names are flat in Postgres; the app prefers them nested. */
@@ -50,6 +59,8 @@ interface AttemptRecord {
   accuracy_note: string | null;
   professionalism_level: Level | null;
   professionalism_note: string | null;
+  /** Raw jsonb; checked by parseStoredChecklist on the way out. */
+  checklist_results: unknown;
 }
 
 const toRow = (r: AttemptRecord): AttemptRow => ({
@@ -68,6 +79,7 @@ const toRow = (r: AttemptRecord): AttemptRow => ({
       note: r.professionalism_note,
     },
   },
+  checklist: parseStoredChecklist(r.checklist_results),
 });
 
 /**
@@ -98,6 +110,8 @@ export async function saveAttempt(input: AttemptInput): Promise<string | null> {
       accuracy_note: assessment.axes.accuracy.note || null,
       professionalism_level: assessment.axes.professionalism.level,
       professionalism_note: assessment.axes.professionalism.note || null,
+      // Key, label and status only; see ChecklistVerdict.
+      checklist_results: assessment.checklist ?? null,
     })
     .select("id")
     .single();
@@ -120,7 +134,7 @@ export async function listAttempts(limit = 50): Promise<AttemptRow[]> {
     .select(
       "id, created_at, mode, prompt, transcript, summary, next_step, " +
         "clarity_level, clarity_note, accuracy_level, accuracy_note, " +
-        "professionalism_level, professionalism_note",
+        "professionalism_level, professionalism_note, checklist_results",
     )
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -162,4 +176,41 @@ export function tallyAxes(rows: AttemptRow[]): AxisTally[] {
     }
     return tally;
   });
+}
+
+export interface ChecklistTally {
+  key: string;
+  /** From the newest attempt that judged this item. */
+  label: string;
+  /** Attempts in which this item was judged at all. */
+  judged: number;
+  covered: number;
+  partial: number;
+  missing: number;
+}
+
+/**
+ * How often each checklist item was missed or only half said, worst first.
+ * Counts only attempts whose question had a checklist containing the item; an
+ * attempt without one is neither a hit nor a miss. Items share a key across
+ * questions on purpose, so "the follow-up plan" adds up over different answers.
+ * Rows are expected newest first, as listAttempts returns them.
+ */
+export function tallyChecklist(rows: AttemptRow[]): ChecklistTally[] {
+  const byKey = new Map<string, ChecklistTally>();
+  for (const row of rows) {
+    for (const { key, label, status } of row.checklist ?? []) {
+      let tally = byKey.get(key);
+      if (!tally) {
+        tally = { key, label, judged: 0, covered: 0, partial: 0, missing: 0 };
+        byKey.set(key, tally);
+      }
+      tally.judged += 1;
+      tally[status] += 1;
+    }
+  }
+  const gapRate = (t: ChecklistTally) => (t.partial + t.missing) / t.judged;
+  return [...byKey.values()].sort(
+    (a, b) => gapRate(b) - gapRate(a) || b.judged - a.judged,
+  );
 }

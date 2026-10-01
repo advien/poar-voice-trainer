@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { tallyAxes, type AttemptRow } from "@/lib/attempts";
+import { tallyAxes, tallyChecklist, type AttemptRow } from "@/lib/attempts";
+import type { ChecklistVerdict } from "@/lib/assessment";
 
 const row = (
   clarity: AttemptRow["axes"]["clarity"]["level"],
@@ -17,6 +18,7 @@ const row = (
     accuracy: { level: accuracy, note: null },
     professionalism: { level: "solid", note: null },
   },
+  checklist: null,
 });
 
 describe("tallyAxes", () => {
@@ -55,5 +57,49 @@ describe("tallyAxes", () => {
       "accuracy",
       "professionalism",
     ]);
+  });
+});
+
+const withChecklist = (checklist: ChecklistVerdict[] | null): AttemptRow => ({
+  ...row("solid", "solid"),
+  checklist,
+});
+
+const v = (
+  key: string,
+  status: ChecklistVerdict["status"],
+  label = key,
+): ChecklistVerdict => ({ key, label, status });
+
+describe("tallyChecklist", () => {
+  it("counts partial and missing as gaps, per item", () => {
+    const tally = tallyChecklist([
+      withChecklist([v("plan", "missing"), v("pain", "covered")]),
+      withChecklist([v("plan", "partial"), v("pain", "covered")]),
+      withChecklist([v("plan", "covered")]),
+    ]);
+    const plan = tally.find(t => t.key === "plan")!;
+    expect(plan).toMatchObject({ judged: 3, covered: 1, partial: 1, missing: 1 });
+    expect(tally.find(t => t.key === "pain")!.judged).toBe(2);
+  });
+
+  it("ignores attempts without a checklist", () => {
+    expect(tallyChecklist([withChecklist(null), row("solid", "solid")])).toEqual([]);
+  });
+
+  it("puts the most-missed item first", () => {
+    const tally = tallyChecklist([
+      withChecklist([v("a", "covered"), v("b", "missing")]),
+      withChecklist([v("a", "covered"), v("b", "missing")]),
+    ]);
+    expect(tally.map(t => t.key)).toEqual(["b", "a"]);
+  });
+
+  it("uses the label from the newest attempt", () => {
+    const tally = tallyChecklist([
+      withChecklist([v("a", "covered", "New wording")]),
+      withChecklist([v("a", "covered", "Old wording")]),
+    ]);
+    expect(tally[0].label).toBe("New wording");
   });
 });

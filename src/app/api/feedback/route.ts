@@ -6,10 +6,12 @@ import { checkAccess, paymentRequired } from "@/lib/access";
 import { recordUsage } from "@/lib/usage";
 import {
   ASSESSMENT_FORMAT,
+  checklistFormat,
   parseAssessment,
   type Assessment,
 } from "@/lib/assessment";
 import { saveAttempt } from "@/lib/attempts";
+import { getQuestionContext } from "@/lib/questions";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -19,12 +21,16 @@ const MAX_TRANSCRIPT_CHARS = 8_000;
 
 /**
  * POST /api/feedback
- * Body: { mode: string, transcript: string }
- * Returns: { assessment: Assessment }
+ * Body: { mode: string, transcript: string, questionId?: string }
+ * Returns: { assessment: Assessment, saved: boolean, checklistReview }
  *
  * Coaches the transcript against the mode's rubric: a level and a sentence per
  * axis, and one instruction for the next attempt. See src/lib/assessment.ts for
  * why this is not a score out of a hundred.
+ *
+ * The question and its checklist are looked up here by `questionId`; nothing
+ * about them is taken from the request, so a caller cannot choose the checklist
+ * its answer is judged against.
  */
 export async function POST(request: Request) {
   const rl = rateLimit(`feedback:${clientIp(request)}`, 10, 60_000);
@@ -42,13 +48,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const { mode, transcript, questionId, prompt } =
-    (await request.json()) as {
-      mode?: string;
-      transcript?: string;
-      questionId?: string;
-      prompt?: string;
-    };
+  const { mode, transcript, questionId } = (await request.json()) as {
+    mode?: string;
+    transcript?: string;
+    questionId?: string;
+  };
 
   if (!transcript) {
     return NextResponse.json({ error: "Missing transcript." }, { status: 400 });
@@ -65,6 +69,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unknown mode." }, { status: 400 });
   }
 
+  const question = await getQuestionContext(questionId, practiceMode.id);
+  const questionPrompt = question?.prompt ?? practiceMode.prompt;
+  const checklist = question?.checklist ?? null;
+
   try {
     const completion = await getOpenAI().chat.completions.create({
       model: FEEDBACK_MODEL,
@@ -72,12 +80,14 @@ export async function POST(request: Request) {
       messages: [
         {
           role: "system",
-          content: `${feedbackSystemPrompt(practiceMode)}\n\n${ASSESSMENT_FORMAT}`,
+          content:
+            `${feedbackSystemPrompt(practiceMode)}\n\n${ASSESSMENT_FORMAT}` +
+            (checklist ? `\n\n${checklistFormat(checklist.items)}` : ""),
         },
         {
           role: "user",
           content:
-            `Prompt the user answered: "${practiceMode.prompt}"\n\n` +
+            `Prompt the user answered: "${questionPrompt}"\n\n` +
             `Their transcribed answer:\n"""\n${transcript}\n"""`,
         },
       ],
@@ -91,19 +101,26 @@ export async function POST(request: Request) {
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
-    const assessment: Assessment = parseAssessment(JSON.parse(raw));
+    const assessment: Assessment = parseAssessment(
+      JSON.parse(raw),
+      checklist?.items,
+    );
 
     // Saved only for a signed-in account; the trial stores nothing and
     // saveAttempt returns null rather than treating that as an error.
     const attemptId = await saveAttempt({
       mode: practiceMode.id,
-      questionId: questionId ?? null,
-      prompt: prompt ?? practiceMode.prompt,
+      questionId: question?.id ?? null,
+      prompt: questionPrompt,
       transcript,
       assessment,
     });
 
-    return NextResponse.json({ assessment, saved: attemptId !== null });
+    return NextResponse.json({
+      assessment,
+      saved: attemptId !== null,
+      checklistReview: checklist?.review ?? null,
+    });
   } catch (err) {
     console.error("Feedback generation failed:", err);
     return NextResponse.json(

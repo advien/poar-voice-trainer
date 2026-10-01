@@ -33,11 +33,13 @@ results line and the full page cannot disagree with each other.
       returns nothing.
 - [ ] `POST /api/sessions` does not exist: it should 404.
 
-### "No transcript, feedback or scores are kept"
+### "Signed out, no transcript, feedback or result is kept"
 
 - [ ] `VoiceRecorder` holds the result in component state and posts it nowhere.
-- [ ] `grep -rn "transcript" src/app/api` shows it only as a request body and a
-      response, never as something written.
+- [ ] `saveAttempt` in `src/lib/attempts.ts` returns null without a signed-in
+      user, before any insert.
+- [ ] `grep -rn "transcript" src/app/api` shows it as a request body, a
+      response, and the signed-in `saveAttempt` call — nothing else.
 
 ### "Only these counters are stored"
 
@@ -72,11 +74,28 @@ results line and the full page cannot disagree with each other.
 - [ ] An anonymous visit sets none of them.
 - [ ] Consent is remembered in `localStorage`, not a cookie.
 
-### "An account holds an email and nothing else yet"
+### "An account holds an email and the saved practice history"
 
-- [ ] No table stores anything against `user_id`: `grep -rn "user_id" src`
+- [ ] The only code storing anything against `user_id` is the `attempts` code:
+      `grep -rln "user_id" src` lists `src/lib/attempts.ts` alone. (`supabase/
+      schema.sql` still declares a legacy `sessions` table with a `user_id`;
+      nothing in `src` writes to it, and it should stay empty — check with
+      `select count(*) from public.sessions`.)
+- [ ] `src/lib/attempts.ts` uses the request-scoped anon client and never
+      `getSupabaseAdmin`: `grep -n "getSupabaseAdmin" src/lib/attempts.ts`
       returns nothing.
-- [ ] `/account` reads only the signed-in user and the usage summary.
+- [ ] `attempts` has RLS with select/insert/delete for `auth.uid() = user_id`
+      and deliberately no update policy: `supabase/attempts.sql`.
+
+### "Per-item checklist verdicts hold no words from the answer"
+
+- [ ] `attempts.checklist_results` is written only as `[{key,label,status}]`;
+      `parseChecklist` in `src/lib/assessment.ts` drops everything else, so no
+      free text (and no quote from the transcript) outlives the two-day purge.
+- [ ] `question_checklists` is readable by anyone but writable only with the
+      service-role key or the SQL editor, and holds no user data.
+- [ ] Checklists are looked up on the server by `questionId`; the client cannot
+      supply items.
 
 ### "No analytics or tracking"
 

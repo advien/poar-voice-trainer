@@ -81,7 +81,10 @@ learner rather than living only in the prompt.
    can only feel bad about.
 
 4. **Gap analysis against reference answers** — the point of the whole thing,
-   and deliberately last. Each question gets a checklist of the elements a good
+   and deliberately last. **Mechanism done, content just started:** ten
+   questions on residual limb care, phantom limb pain, socket fit and prosthesis
+   assessment have checklists derived from the VA/DoD lower-limb guideline; none
+   has been read by a clinician yet. Each question gets a checklist of the elements a good
    answer covers; the model reports *covered / partial / missing* per element;
    the account shows the pattern: "you skip the follow-up plan in 7 answers out
    of 9." It comes last because it depends on everything above — on the stored

@@ -1,0 +1,32 @@
+-- ────────────────────────────────────────────────────────────────
+-- The checklists themselves. Run after checklists.sql, and again after every
+-- reseed of `questions` (seed.sql truncates it, which wipes checklists too).
+--
+-- Each checklist is attached by the exact prompt text of its question, never by
+-- uuid. Re-running is safe: an existing checklist for the question is replaced.
+--
+-- Rules for every entry:
+--   * facts, in our own words — no wording or ready-made lists copied from a
+--     source (a list is a selection, and a selection can be protected);
+--   * `source` and `source_licence` filled in, and logged in research/sources.md;
+--   * review_status stays 'derived_from_source' until a clinician has read it.
+--
+-- Template (copy, fill in, remove the leading dashes):
+--
+-- insert into public.question_checklists
+--   (question_id, items, source, source_licence, review_status)
+-- select q.id,
+--        '[{"key": "item_key", "label": "What the answer should cover"}]'::jsonb,
+--        'Document name and link',
+--        'Licence of that document',
+--        'derived_from_source'
+--   from public.questions q
+--  where q.prompt = 'The exact question text'
+-- on conflict (question_id) do update
+--   set items = excluded.items,
+--       source = excluded.source,
+--       source_licence = excluded.source_licence,
+--       review_status = excluded.review_status;
+--
+-- No checklists yet: content is added once its sources are read and logged.
+-- ────────────────────────────────────────────────────────────────

@@ -15,10 +15,10 @@ results line and the full page cannot disagree with each other.
 | Place | What it says | File |
 |---|---|---|
 | Before the first recording | Short notice + checkbox, links to the full page | `src/components/ConsentGate.tsx` |
-| Under the results | Nothing was saved, closing the page ends it | `src/components/VoiceRecorder.tsx` |
+| Under the results | Signed out: nothing was saved. Signed in: saved to the account, transcript deleted in two days | `src/components/VoiceRecorder.tsx` |
 | Footer, every page | Link to the notice | `src/app/layout.tsx` |
 | `/privacy` | The full notice | `src/app/privacy/page.tsx` |
-| `/progress` | Why there is no history, and where it will live | `src/app/progress/page.tsx` |
+| `/progress` | Why the trial has no history, and that the account holds it | `src/app/progress/page.tsx` |
 | When the free attempt is gone | The gate dialog, with the contact address | `src/components/AccessDialog.tsx` |
 
 ---
@@ -33,11 +33,13 @@ results line and the full page cannot disagree with each other.
       returns nothing.
 - [ ] `POST /api/sessions` does not exist: it should 404.
 
-### "No transcript, feedback or scores are kept"
+### "Signed out, no transcript, feedback or result is kept"
 
 - [ ] `VoiceRecorder` holds the result in component state and posts it nowhere.
-- [ ] `grep -rn "transcript" src/app/api` shows it only as a request body and a
-      response, never as something written.
+- [ ] `saveAttempt` in `src/lib/attempts.ts` returns null without a signed-in
+      user, before any insert.
+- [ ] `grep -rn "transcript" src/app/api` shows it as a request body, a
+      response, and the signed-in `saveAttempt` call — nothing else.
 
 ### "Only these counters are stored"
 
@@ -72,11 +74,28 @@ results line and the full page cannot disagree with each other.
 - [ ] An anonymous visit sets none of them.
 - [ ] Consent is remembered in `localStorage`, not a cookie.
 
-### "An account holds an email and nothing else yet"
+### "An account holds an email and the saved practice history"
 
-- [ ] No table stores anything against `user_id`: `grep -rn "user_id" src`
+- [ ] The only code storing anything against `user_id` is the `attempts` code:
+      `grep -rln "user_id" src` lists `src/lib/attempts.ts` alone.
+- [ ] The legacy `sessions` table is gone from the database: `select
+      to_regclass('public.sessions')` returns null. (Dropped 2026-10-01 after
+      its four test rows were deleted; `schema.sql` no longer defines it.)
+- [ ] `src/lib/attempts.ts` uses the request-scoped anon client and never
+      `getSupabaseAdmin`: `grep -n "getSupabaseAdmin" src/lib/attempts.ts`
       returns nothing.
-- [ ] `/account` reads only the signed-in user and the usage summary.
+- [ ] `attempts` has RLS with select/insert/delete for `auth.uid() = user_id`
+      and deliberately no update policy: `supabase/attempts.sql`.
+
+### "Per-item checklist verdicts hold no words from the answer"
+
+- [ ] `attempts.checklist_results` is written only as `[{key,label,status}]`;
+      `parseChecklist` in `src/lib/assessment.ts` drops everything else, so no
+      free text (and no quote from the transcript) outlives the two-day purge.
+- [ ] `question_checklists` is readable by anyone but writable only with the
+      service-role key or the SQL editor, and holds no user data.
+- [ ] Checklists are looked up on the server by `questionId`; the client cannot
+      supply items.
 
 ### "No analytics or tracking"
 

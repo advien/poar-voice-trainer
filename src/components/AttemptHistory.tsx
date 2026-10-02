@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AXES, LEVEL_MEANING, type Axis, type Level } from "@/lib/assessment";
-import { tallyAxes, type AttemptRow } from "@/lib/attempts";
+import { tallyAxes, tallyChecklist, type AttemptRow } from "@/lib/attempts";
 import { getMode } from "@/lib/modes";
 
 const LEVEL_STYLE: Record<Level, string> = {
@@ -8,6 +8,9 @@ const LEVEL_STYLE: Record<Level, string> = {
   "needs work": "border-amber-200 bg-amber-50 text-amber-800",
   missing: "border-slate-200 bg-slate-50 text-slate-600",
 };
+
+/** An item needs this many judged answers before a "you miss it" claim is made. */
+const MIN_JUDGED_FOR_PATTERN = 3;
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", {
@@ -40,6 +43,10 @@ export default function AttemptHistory({ rows }: { rows: AttemptRow[] }) {
   }
 
   const tally = tallyAxes(rows);
+  // Only items judged often enough to be a pattern, and only those with a gap.
+  const gaps = tallyChecklist(rows).filter(
+    t => t.judged >= MIN_JUDGED_FOR_PATTERN && t.partial + t.missing > 0,
+  );
 
   return (
     <div className="mt-4 space-y-8">
@@ -69,6 +76,30 @@ export default function AttemptHistory({ rows }: { rows: AttemptRow[] }) {
           })}
         </div>
       </section>
+
+      {gaps.length > 0 && (
+        <section>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            What your answers keep leaving out
+          </h3>
+          <ul className="mt-3 space-y-2">
+            {gaps.map(g => (
+              <li key={g.key} className="text-slate-800">
+                <span className="font-medium">{g.label}</span>
+                <span className="text-slate-600">
+                  {" "}
+                  — missed or only partly covered in {g.partial + g.missing} of{" "}
+                  {g.judged} answers
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-slate-500">
+            Counted only over answers to questions that have a checklist. The
+            checklists are study aids, not a standard of care.
+          </p>
+        </section>
+      )}
 
       <section>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">

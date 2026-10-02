@@ -33,8 +33,9 @@ is drawn that way** — the reasoning matters more than the feature list.
   what was said, plus one instruction for the next attempt.
 - A question bank of 300+ prompts tagged by mode × POAR area, generated with an
   LLM pipeline that drops near-duplicates by embedding similarity.
-- **Nothing is stored**: no audio, no transcript, no scores. Results live in the
-  open tab and end with it.
+- **The open trial stores nothing**: no audio, no transcript, no result; they
+  live in the open tab and end with it. Signed in, the coaching is saved to
+  your history and the transcript is deleted after two days.
 - One free run per visitor, then a hard stop, so a public voice app cannot drain
   the API budget.
 - Sign-in by one-time link (invitation-only), and a private page showing what
@@ -80,7 +81,10 @@ learner rather than living only in the prompt.
    can only feel bad about.
 
 4. **Gap analysis against reference answers** — the point of the whole thing,
-   and deliberately last. Each question gets a checklist of the elements a good
+   and deliberately last. **Mechanism done, content just started:** ten
+   questions on residual limb care, phantom limb pain, socket fit and prosthesis
+   assessment have checklists derived from the VA/DoD lower-limb guideline; none
+   has been read by a clinician yet. Each question gets a checklist of the elements a good
    answer covers; the model reports *covered / partial / missing* per element;
    the account shows the pattern: "you skip the follow-up plan in 7 answers out
    of 9." It comes last because it depends on everything above — on the stored
@@ -165,7 +169,9 @@ npm run dev                       # http://localhost:3000
 ```
 
 In the Supabase SQL editor run `supabase/schema.sql`, `seed.sql`,
-`keepalive.sql`, then `free_usage.sql`, `consent_log.sql` and `usage_log.sql`.
+`keepalive.sql`, then `free_usage.sql`, `consent_log.sql`, `usage_log.sql`,
+`attempts.sql` (needs `pg_cron`) and `checklists.sql`. `checklist_seed.sql` goes
+last, and again after every reseed of the questions.
 
 Grow the question bank:
 
@@ -197,19 +203,21 @@ src/
     modes/page.tsx              # Mode selection
     session/[mode]/page.tsx     # Practice session (?q= repeats a question)
     privacy/page.tsx            # The full notice
-    progress/page.tsx           # Why there is no history yet
+    progress/page.tsx           # Where progress lives (the account)
     login/page.tsx              # Magic-link sign-in
     account/page.tsx            # Signed-in area
     usage/page.tsx              # Running cost (access code)
     api/{transcribe,feedback,consent,access}/route.ts
-  components/{VoiceRecorder,ConsentGate,AccessDialog,AccessCodeForm,…}.tsx
+  components/{VoiceRecorder,AttemptHistory,ConsentGate,AccessDialog,…}.tsx
   lib/
     modes.ts  questions.ts  access.ts  usage.ts  privacy.ts
+    assessment.ts  attempts.ts
     ratelimit.ts  openai.ts  supabase/{client,server,admin}.ts
   middleware.ts                 # Session refresh + /account guard
 supabase/
   schema.sql  seed.sql  keepalive.sql
   free_usage.sql  consent_log.sql  usage_log.sql
+  attempts.sql  checklists.sql  checklist_seed.sql
 docs/
   DEPLOY_CLOUDFLARE.md  PRIVACY_CHECKLIST.md
 ```

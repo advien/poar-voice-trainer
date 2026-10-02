@@ -10,6 +10,8 @@ import {
   AXIS_CRITERIA,
   LEVEL_MEANING,
   type Assessment,
+  type CheckStatus,
+  type ChecklistReview,
   type Level,
 } from "@/lib/assessment";
 
@@ -33,6 +35,8 @@ interface SessionResult {
   assessment: Assessment;
   /** True when the server stored this run against a signed-in account. */
   saved: boolean;
+  /** Set only when the question had a checklist. */
+  checklistReview: ChecklistReview | null;
 }
 
 // Practice answers don't need more than this; also keeps the upload well
@@ -45,8 +49,8 @@ const MAX_RECORDING_MS = 5 * 60 * 1000;
  * MVP flow:
  *   1. Record audio with the MediaRecorder API.
  *   2. POST audio to /api/transcribe (OpenAI Whisper) → transcript.
- *   3. POST transcript to /api/feedback (Claude/OpenAI) → feedback.
- *   4. POST the whole session to /api/sessions (Supabase) to save.
+ *   3. POST transcript to /api/feedback (OpenAI) → feedback. For a signed-in
+ *      account the server saves the attempt there, in the same request.
  */
 export function VoiceRecorder({ context }: { context: RecorderContext }) {
   const { mode } = context;
@@ -185,7 +189,6 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
           mode,
           transcript,
           questionId: context.questionId,
-          prompt: context.prompt,
         }),
       });
       if (!fRes.ok) {
@@ -200,13 +203,19 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
         }
         throw new Error(body?.error ?? "Feedback generation failed");
       }
-      const { assessment, saved } = (await fRes.json()) as {
+      const { assessment, saved, checklistReview } = (await fRes.json()) as {
         assessment: Assessment;
         saved?: boolean;
+        checklistReview?: ChecklistReview | null;
       };
 
-      // Results live in this component and nowhere else — no save step.
-      setResult({ transcript, assessment, saved: saved === true });
+      // Saving, for a signed-in account, already happened on the server.
+      setResult({
+        transcript,
+        assessment,
+        saved: saved === true,
+        checklistReview: checklistReview ?? null,
+      });
       setStatus("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -316,6 +325,31 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
             </div>
           </section>
 
+          {result.assessment.checklist && (
+            <section>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                What a good answer covers
+              </h3>
+              <ul className="mt-2 space-y-2">
+                {result.assessment.checklist.map(item => (
+                  <li key={item.key} className="flex items-start gap-3">
+                    <span
+                      className={`mt-0.5 shrink-0 rounded-full border px-2 py-0.5 text-xs ${CHECK_STYLE[item.status]}`}
+                    >
+                      {item.status}
+                    </span>
+                    <span className="text-slate-800">{item.label}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-slate-500">
+                {result.checklistReview === "clinician_reviewed"
+                  ? "This checklist has been reviewed by a clinician."
+                  : "This checklist has not been reviewed by a clinician. It is a study aid, not a standard of care."}
+              </p>
+            </section>
+          )}
+
           {result.assessment.next && (
             <section className="rounded-lg border border-brand/30 bg-brand/5 p-4">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-brand">
@@ -340,6 +374,12 @@ export function VoiceRecorder({ context }: { context: RecorderContext }) {
     </div>
   );
 }
+
+const CHECK_STYLE: Record<CheckStatus, string> = {
+  covered: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  partial: "border-amber-200 bg-amber-50 text-amber-800",
+  missing: "border-slate-200 bg-slate-50 text-slate-600",
+};
 
 const LEVEL_STYLE: Record<Level, string> = {
   solid: "border-emerald-200 bg-emerald-50 text-emerald-800",
@@ -417,7 +457,7 @@ function statusLabel(status: Status): string {
     case "feedback":
       return "Generating feedback…";
     case "done":
-      return "Session saved.";
+      return "Feedback ready.";
     default:
       return "Ready when you are!";
   }

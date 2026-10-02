@@ -42,9 +42,11 @@ export default function PrivacyPage() {
           <p className="mt-2 leading-relaxed">
             The audio is recorded in your browser and sent to{" "}
             <strong>OpenAI</strong> for transcription (Whisper) and for the
-            coaching text and the level for each axis (GPT-4o mini). OpenAI processes API data on
-            servers outside the EU and, under its API terms, does not use it to
-            train its models.
+            coaching text and the level for each axis (GPT-4o mini). For
+            questions that have a study checklist, the model is also given that
+            checklist and marks each item as covered, partial or missing in your
+            answer. OpenAI processes API data on servers outside the EU and,
+            under its API terms, does not use it to train its models.
           </p>
           <p className="mt-3 leading-relaxed">
             The audio is not written to any database here and is not kept after
@@ -146,8 +148,9 @@ export default function PrivacyPage() {
           <p className="mt-2 leading-relaxed">
             You can sign in, by a one-time link sent to your email. Accounts are
             invitation-only: sign-up is closed, so a link only reaches an
-            address that already has one. An account holds your email address
-            and the sign-in records Supabase keeps for it.
+            address that already has one. An account holds your email address,
+            the sign-in records Supabase keeps for it, and the practice history
+            described below.
           </p>
 
           <p className="mt-3 leading-relaxed">
@@ -160,9 +163,11 @@ export default function PrivacyPage() {
             <li>
               <strong>Kept until you delete it:</strong> which question you
               answered, when, the level each axis came back at, the sentences
-              explaining those levels, and the instruction for the next attempt.
-              This is what a history is made of — it is also, deliberately, not
-              the words you said.
+              explaining those levels, the instruction for the next attempt and,
+              where the question has a checklist, whether each checklist item
+              was covered, partial or missing (the item&apos;s name and that
+              verdict only, no quotes from your answer). This is what a history
+              is made of — it is also, deliberately, not the words you said.
             </li>
             <li>
               <strong>Kept for two days, then deleted automatically:</strong>{" "}

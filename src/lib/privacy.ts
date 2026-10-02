@@ -8,7 +8,7 @@
  * old consent is never mistaken for agreement to new terms.
  */
 
-export const POLICY_VERSION = "2026-09-28";
+export const POLICY_VERSION = "2026-09-30";
 
 export const CONTACT_EMAIL = "adsnufkin@gmail.com";
 

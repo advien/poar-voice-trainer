@@ -5,12 +5,13 @@ import { CONTACT_EMAIL } from "@/lib/privacy";
 export const metadata: Metadata = {
   title: "Progress — POAR Voice Trainer",
   description:
-    "Progress tracking belongs to an account. The open trial keeps nothing, by design.",
+    "Progress lives in an account. The open trial keeps nothing, by design.",
 };
 
 /**
- * There is no history to show: the trial stores nothing. Rather than a page
- * that quietly lists nothing, this says where progress went and why.
+ * There is no history to show here: the open trial stores nothing, and a signed
+ * in person's history is on /account. Rather than a page that quietly lists
+ * nothing, this says where progress is and why.
  */
 export default function ProgressPage() {
   return (
@@ -19,16 +20,19 @@ export default function ProgressPage() {
 
       <p className="mt-4 leading-relaxed text-slate-700">
         Nothing is tracked here. The open trial sends your recording for
-        transcription and scoring, shows the result, and keeps none of it — no
-        audio, no transcript, no scores. There is nothing to build a history
+        transcription and coaching, shows the result, and keeps none of it — no
+        audio, no transcript, no result. There is nothing to build a history
         from, which is the point.
       </p>
 
       <p className="mt-4 leading-relaxed text-slate-700">
-        Averages, trends and the weakest-area callout need somewhere to store
-        your answers, and that needs an account. Accounts are not built yet.
-        When they are, progress lives inside one — visible to you and to nobody
-        else.
+        Counting how often each axis needed work needs somewhere to keep your
+        attempts, and that is an account. Signed in, your history and those
+        counts are on your{" "}
+        <Link href="/account" className="text-brand underline">
+          account page
+        </Link>{" "}
+        — visible to you and to nobody else. Accounts are by invitation.
       </p>
 
       <p className="mt-6 leading-relaxed text-slate-700">
